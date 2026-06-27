@@ -1,0 +1,2285 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>麻將大老二🎮</title>
+<style>
+/* ===== CSS 變數與全域 ===== */
+:root {
+  --bg: #0f172a;
+  --card-bg: rgba(30,41,59,0.85);
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --grad-main: linear-gradient(135deg,#6366f1,#a855f7);
+  --green: #10b981;
+  --red: #ef4444;
+  --yellow: #f59e0b;
+  --border: 1px solid rgba(255,255,255,0.1);
+  --shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'PingFang TC','Microsoft JhengHei',sans-serif;
+  background:linear-gradient(-45deg,#0f172a,#1e1b4b,#312e81,#0f172a);
+  background-size:400% 400%;
+  animation:bgAnim 15s ease infinite;
+  color:var(--text);
+  display:flex;flex-direction:column;align-items:center;
+  padding:20px;min-height:100vh;min-height:100dvh;
+  overflow-x:hidden;touch-action:manipulation;
+}
+@keyframes bgAnim{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{0%{transform:scale(0);opacity:0}80%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+@keyframes pulse{0%,100%{opacity:.6}50%{opacity:1;text-shadow:0 0 10px #facc15}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+
+/* ===== 容器 ===== */
+.container{
+  background:var(--card-bg);
+  padding:25px;border-radius:16px;
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:var(--border);
+  width:100%;max-width:600px;text-align:center;
+  margin-bottom:20px;position:relative;z-index:10;
+  animation:fadeUp .5s ease-out;
+}
+h1,h2,h3,h4{color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.5);}
+h1{margin-bottom:8px;}
+.hidden{display:none !important;}
+
+/* ===== 按鈕 ===== */
+.menu-btn{
+  width:100%;padding:15px 20px;margin:10px 0;font-size:17px;cursor:pointer;
+  border:none;border-radius:12px;background:var(--grad-main);
+  color:#fff;font-weight:bold;
+  box-shadow:0 4px 15px rgba(0,0,0,.25);
+  transition:all .3s cubic-bezier(.4,0,.2,1);
+  font-family:inherit;position:relative;overflow:hidden;
+}
+.menu-btn:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 8px 25px rgba(99,102,241,.5);}
+.menu-btn:active{transform:translateY(0);}
+.btn-sm{
+  border:none;padding:6px 14px;border-radius:8px;cursor:pointer;
+  font-size:.85em;margin-left:6px;color:#fff;
+  transition:.2s;font-weight:600;font-family:inherit;
+}
+.btn-g{background:var(--green);}
+.btn-g:hover{background:#059669;}
+.btn-r{background:var(--red);}
+.btn-r:hover{background:#dc2626;}
+.btn-y{background:var(--yellow);}
+.btn-y:hover{background:#d97706;}
+
+/* ===== 房間列表 ===== */
+.room-item{
+  border:1px solid rgba(255,255,255,.06);
+  padding:14px;margin:10px 0;
+  display:flex;justify-content:space-between;align-items:center;
+  border-radius:12px;background:rgba(0,0,0,.2);
+  transition:.3s;animation:fadeIn .4s;
+}
+.room-item:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.18);transform:translateX(5px);}
+.room-info{text-align:left;display:flex;flex-direction:column;gap:4px;}
+.room-name{font-weight:bold;font-size:1.05em;color:#fff;display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.room-meta{font-size:.8em;color:var(--muted);}
+.badge{font-size:.72em;padding:2px 8px;border-radius:20px;font-weight:bold;}
+.badge-wait{background:rgba(16,185,129,.2);color:#34d399;border:1px solid rgba(16,185,129,.3);}
+.badge-play{background:rgba(239,68,68,.2);color:#f87171;border:1px solid rgba(239,68,68,.3);}
+
+/* ===== 統計欄 ===== */
+.stats-bar{
+  background:rgba(0,0,0,.2);padding:11px;border-radius:10px;
+  margin-bottom:18px;font-size:.92em;color:var(--muted);
+  display:flex;justify-content:space-around;border:var(--border);
+}
+.stats-bar b{color:#60a5fa;font-size:1.2em;margin-left:4px;}
+
+/* ===== 表單 ===== */
+input,select{
+  padding:10px 15px;border:1px solid #475569;
+  border-radius:8px;background:#1e293b;color:#fff;
+  outline:none;transition:.3s;font-family:inherit;font-size:1em;
+}
+input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,246,.2);}
+.input-row{margin:13px 0;text-align:left;display:flex;align-items:center;justify-content:space-between;color:var(--text);}
+.input-row input,.input-row select{width:56%;}
+
+/* ===== Modal ===== */
+.modal-bg{
+  position:fixed;top:0;left:0;width:100%;height:100vh;height:100dvh;
+  background:rgba(0,0,0,.75);z-index:2000;
+  display:flex;justify-content:center;align-items:center;
+  backdrop-filter:blur(5px);animation:fadeIn .25s;
+}
+.modal-box{
+  background:linear-gradient(145deg,#1e293b,#0f172a);
+  border:2px solid #a78bfa;padding:25px;border-radius:20px;
+  text-align:center;width:90%;max-width:400px;
+  box-shadow:0 0 30px rgba(139,92,246,.4);
+  animation:popIn .3s;color:#fff;
+  max-height:90vh;overflow-y:auto;
+}
+.modal-box h3{color:#a78bfa;margin-bottom:16px;}
+.modal-btn{
+  padding:10px 24px;border-radius:25px;border:none;
+  font-weight:bold;cursor:pointer;color:#fff;
+  font-size:1em;transition:.2s;margin:5px;font-family:inherit;
+}
+.mbtn-ok{background:var(--green);}
+.mbtn-cancel{background:#64748b;}
+
+/* ===== 聊天 ===== */
+#chat-area{margin-top:18px;border-top:1px solid rgba(255,255,255,.1);padding-top:14px;text-align:left;}
+#chat-msgs{
+  height:100px;overflow-y:auto;background:rgba(0,0,0,.3);
+  border-radius:8px;padding:10px;font-size:.88em;
+  margin-bottom:9px;border:var(--border);color:var(--text);
+}
+#chat-msgs div{margin-bottom:3px;animation:fadeIn .3s;}
+#chat-msgs b{color:#a5b4fc;margin-right:4px;}
+.chat-row{display:flex;gap:8px;}
+.chat-row input{flex:1;text-align:left;background:rgba(0,0,0,.4);}
+.chat-row button{background:#334155;border:1px solid #475569;color:#fff;padding:0 14px;border-radius:8px;cursor:pointer;font-family:inherit;}
+.chat-row button:hover{background:#475569;}
+.name-edit{color:#60a5fa;font-weight:bold;cursor:pointer;border-bottom:1px dashed #60a5fa;}
+
+/* ===================================================
+   大老二 Big 2
+=================================================== */
+#b2-wrapper{
+  background:radial-gradient(circle,#064e3b 0%,#022c22 100%);
+  border:8px solid #3f2e26;border-radius:18px;
+  box-shadow:inset 0 0 80px rgba(0,0,0,.8),0 15px 40px rgba(0,0,0,.6);
+  padding:12px;color:#ecf0f1;position:relative;
+  min-height:520px;display:flex;flex-direction:column;
+  gap:8px;overflow:hidden;
+}
+.b2-header{
+  display:flex;justify-content:space-between;align-items:center;
+  background:rgba(0,0,0,.6);padding:8px 14px;border-radius:30px;
+  border:1px solid rgba(255,255,255,.1);font-size:.9em;
+}
+.b2-opps{
+  display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;
+  scroll-behavior:smooth;
+}
+.b2-opps::-webkit-scrollbar{height:4px;}
+.b2-opps::-webkit-scrollbar-thumb{background:#6366f1;border-radius:2px;}
+.b2-opp{
+  background:rgba(0,0,0,.65);padding:9px 12px;border-radius:11px;
+  text-align:center;min-width:80px;flex-shrink:0;
+  border:2px solid transparent;transition:.3s;
+}
+.b2-opp.active{border-color:#facc15;background:rgba(250,204,21,.15);transform:scale(1.07);}
+.b2-opp.done{opacity:.5;}
+.opp-nm{font-size:.75em;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:72px;}
+.opp-cnt{font-size:1.1em;font-weight:bold;}
+
+.b2-center{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+}
+.b2-play-area{
+  min-height:90px;display:flex;align-items:center;justify-content:center;
+  gap:4px;padding:12px;
+  background:rgba(0,0,0,.3);border:2px dashed rgba(255,255,255,.2);
+  border-radius:12px;width:96%;flex-wrap:wrap;
+}
+.b2-ctrl{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.b2-hand{
+  display:flex;align-items:flex-end;overflow-x:auto;
+  padding:42px 15px 18px;min-height:130px;gap:0;
+  -webkit-overflow-scrolling:touch;
+}
+.b2-hand::-webkit-scrollbar{height:4px;}
+.b2-hand::-webkit-scrollbar-thumb{background:#6366f1;border-radius:2px;}
+
+/* ===================================================
+   撲克牌 Playing Card
+=================================================== */
+.pc{
+  width:52px;height:76px;border-radius:7px;
+  background:linear-gradient(145deg,#fefefe,#f0f0f0);
+  border:2px solid #fff;
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:3px 4px;
+  box-shadow:2px 4px 10px rgba(0,0,0,.55);
+  cursor:pointer;user-select:none;position:relative;
+  transition:transform .18s;flex-shrink:0;
+  margin-left:-25px;transform-origin:center bottom;
+}
+.pc:first-child{margin-left:0 !important;}
+.pc:hover{transform:translateY(-18px) scale(1.1);z-index:50;}
+.pc.sel{transform:translateY(-30px);border-color:#facc15;box-shadow:0 0 18px #facc15;z-index:49;}
+.pc.off{filter:grayscale(.7) brightness(.5);pointer-events:none;}
+.pc .tl{font-size:.9em;font-weight:900;line-height:1.1;}
+.pc .mid{font-size:1.55em;text-align:center;line-height:1;}
+.pc .br{font-size:.9em;font-weight:900;line-height:1.1;transform:rotate(180deg);text-align:right;}
+.pc.rd .tl,.pc.rd .mid,.pc.rd .br{color:#dc2626;}
+.pc.bk .tl,.pc.bk .mid,.pc.bk .br{color:#1a1a2e;}
+.pc-back{
+  width:52px;height:76px;border-radius:7px;flex-shrink:0;
+  background:repeating-linear-gradient(45deg,#7f1d1d,#7f1d1d 8px,#991b1b 8px,#991b1b 16px);
+  border:2px solid #e5e7eb;
+  box-shadow:2px 4px 8px rgba(0,0,0,.5);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.4em;color:rgba(255,255,255,.3);
+}
+
+/* ===================================================
+   遊戲按鈕
+=================================================== */
+.gbtn{
+  padding:11px 24px;border-radius:30px;border:none;font-weight:900;
+  cursor:pointer;font-size:1em;color:#fff;
+  box-shadow:0 5px 0 rgba(0,0,0,.4);transition:.1s;
+  font-family:inherit;letter-spacing:.5px;
+}
+.gbtn:active{transform:translateY(4px);box-shadow:none;}
+.gbtn:disabled{background:#64748b;cursor:not-allowed;box-shadow:none;transform:translateY(4px);filter:grayscale(.7);}
+.gbtn-play{background:linear-gradient(to bottom,#3b82f6,#1d4ed8);}
+.gbtn-pass{background:linear-gradient(to bottom,#ef4444,#b91c1c);}
+.gbtn-start{background:linear-gradient(to bottom,#10b981,#059669);}
+.gbtn-purple{background:linear-gradient(to bottom,#8b5cf6,#7c3aed);}
+.gbtn-gold{background:linear-gradient(to bottom,#f59e0b,#d97706);}
+
+/* ===================================================
+   麻將 Mahjong
+=================================================== */
+#mj-wrapper{
+  background:radial-gradient(ellipse at center,#1a3d1a 0%,#0c200c 100%);
+  border:8px solid #4a3728;border-radius:18px;
+  box-shadow:inset 0 0 80px rgba(0,0,0,.8),0 15px 40px rgba(0,0,0,.6);
+  padding:12px;color:#ecf0f1;position:relative;
+  min-height:560px;display:flex;flex-direction:column;gap:7px;
+  overflow:hidden;
+}
+.mj-header{
+  display:flex;justify-content:space-around;align-items:center;
+  background:rgba(0,0,0,.6);padding:8px 10px;border-radius:30px;
+  border:1px solid rgba(255,255,255,.1);font-size:.82em;gap:4px;flex-wrap:wrap;
+}
+.mj-chip{
+  background:rgba(255,255,255,.1);padding:3px 9px;border-radius:14px;
+  color:#e2e8f0;white-space:nowrap;font-size:.88em;
+}
+.mj-opps{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
+}
+.mj-opp{
+  background:rgba(0,0,0,.65);padding:8px;border-radius:10px;
+  text-align:center;border:2px solid transparent;transition:.3s;
+}
+.mj-opp.active{border-color:#facc15;background:rgba(250,204,21,.15);}
+.mj-opp .onm{font-size:.74em;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mj-opp .otl{font-size:.83em;color:var(--muted);}
+.mj-opp .omn{font-size:.8em;color:#34d399;font-weight:bold;}
+.mj-opp .omd{
+  display:flex;flex-wrap:wrap;gap:2px;justify-content:center;margin-top:3px;
+}
+
+.mj-center{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+}
+.mj-status{
+  width:97%;background:rgba(0,0,0,.4);border-radius:10px;
+  padding:8px 13px;font-size:.9em;text-align:center;
+  border:1px solid rgba(255,255,255,.1);min-height:36px;
+}
+.discard-box{
+  width:97%;background:rgba(0,0,0,.3);
+  border:2px dashed rgba(255,255,255,.15);border-radius:12px;
+  padding:8px;display:flex;flex-wrap:wrap;gap:3px;
+  min-height:56px;align-items:center;justify-content:flex-start;
+}
+.discard-label{font-size:.75em;color:var(--muted);align-self:flex-start;margin-left:1.5%;}
+.mj-ctrl{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+.mj-hand{
+  display:flex;align-items:flex-end;overflow-x:auto;
+  padding:38px 15px 16px;min-height:118px;gap:0;
+  -webkit-overflow-scrolling:touch;
+}
+.mj-hand::-webkit-scrollbar{height:4px;}
+.mj-hand::-webkit-scrollbar-thumb{background:#16a34a;border-radius:2px;}
+
+/* 麻將牌（採用原生 Unicode 字元，每張獨立不重疊，正面字元滿版） */
+.mjt{
+  width:50px;height:68px;border-radius:6px;
+  background:linear-gradient(145deg,#fffde7,#f5f0d8);
+  border:1px solid rgba(0,0,0,.08);
+  display:flex;align-items:center;justify-content:center;
+  font-size:62px;font-weight:bold;color:#1a1a2e;
+  font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji','PingFang TC','Microsoft JhengHei',sans-serif;
+  cursor:pointer;user-select:none;flex-shrink:0;
+  transition:transform .15s;
+  box-shadow:2px 4px 8px rgba(0,0,0,.5);
+  margin-left:2px;transform-origin:center bottom;
+  line-height:1;text-align:center;overflow:hidden;
+  padding:0;
+}
+.mjt:first-child{margin-left:0 !important;}
+.mjt.drawn{margin-left:15px !important;border-color:#facc15;box-shadow:0 0 10px rgba(250,204,21,.6);}
+.mjt:hover{transform:translateY(-16px) scale(1.1);z-index:50;}
+.mjt.sel{transform:translateY(-26px);border-color:#facc15;box-shadow:0 0 16px #facc15;z-index:49;}
+.mjt.off{filter:grayscale(.7) brightness(.5);pointer-events:none;}
+.mjt.back{
+  background:linear-gradient(145deg,#1f7a3a,#145c28);
+  border:1px solid #0d3f1a;
+  font-size:0;color:transparent;
+}
+.mjt.man{color:#b91c1c;}
+.mjt.pin{color:#1d4ed8;}
+.mjt.sou{color:#15803d;}
+.mjt.jihai{color:#6d28d9;}
+.mjt.flower{color:#db2777;background:linear-gradient(145deg,#fef3c7,#fde68a);}
+/* 花牌展示區 */
+.mj-flowers{
+  display:flex;gap:3px;flex-wrap:wrap;justify-content:center;
+  padding:4px;margin-top:4px;min-height:34px;
+  background:rgba(0,0,0,.2);border-radius:6px;border:1px dashed rgba(255,255,255,.15);
+}
+.mj-flowers:empty::before{content:'(無花牌)';color:rgba(255,255,255,.25);font-size:.7em;}
+/* 小棄牌 */
+.mjt-sm{
+  width:30px;height:40px;border-radius:4px;
+  background:linear-gradient(145deg,#fffde7,#f0ecc8);
+  border:1px solid rgba(0,0,0,.08);font-size:36px;font-weight:bold;
+  font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji','PingFang TC','Microsoft JhengHei',sans-serif;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:1px 2px 4px rgba(0,0,0,.4);cursor:default;
+  color:#1a1a2e;flex-shrink:0;line-height:1;overflow:hidden;padding:0;
+}
+.mjt-sm.back{
+  background:linear-gradient(145deg,#1f7a3a,#145c28);
+  border:1px solid #0d3f1a;
+  font-size:0;color:transparent;
+}
+.mjt-sm.man{color:#b91c1c;}
+.mjt-sm.pin{color:#1d4ed8;}
+.mjt-sm.sou{color:#15803d;}
+.mjt-sm.jihai{color:#6d28d9;}
+.mjt-sm.flower{color:#db2777;}
+
+
+/* 動作按鈕浮層 */
+.act-overlay{
+  position:absolute;bottom:168px;left:50%;transform:translateX(-50%);
+  display:flex;gap:8px;z-index:100;flex-wrap:wrap;justify-content:center;
+}
+
+/* 公開牌組 */
+.meld-area{
+  display:flex;flex-wrap:wrap;gap:2px;justify-content:center;
+  margin-top:2px;
+}
+.meld-area:empty{display:none;}
+.my-melds{margin:5px 0 0;min-height:0;}
+.meld-group{
+  display:flex;gap:1px;background:rgba(0,0,0,.3);
+  padding:2px;border-radius:4px;border:1px solid rgba(255,255,255,.15);
+}
+.ting-badge{
+  display:inline-block;background:#f59e0b;color:#fff;
+  font-size:.62em;padding:1px 6px;border-radius:10px;
+  margin-left:4px;font-weight:bold;letter-spacing:1px;
+  box-shadow:0 0 6px rgba(245,158,11,.7);vertical-align:middle;
+  animation:pulse 1.6s infinite;
+}
+.ting-badge.self{font-size:.78em;padding:2px 8px;}
+/* 吃牌選擇彈窗 */
+#chi-modal{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.65);z-index:1500;
+  display:none;justify-content:center;align-items:center;
+  backdrop-filter:blur(4px);
+}
+#chi-modal.show{display:flex;}
+#chi-modal .box{
+  background:linear-gradient(145deg,#1e293b,#0f172a);
+  border:1px solid #475569;border-radius:14px;
+  padding:20px 22px;max-width:92%;
+  box-shadow:0 10px 40px rgba(0,0,0,.6);
+}
+#chi-modal h4{margin:0 0 12px;color:#facc15;text-align:center;font-size:1.05em;}
+#chi-modal .opts{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;}
+#chi-modal .opt-btn{
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  background:#0ea5e9;color:#fff;border:none;border-radius:8px;
+  padding:10px 14px;font-size:1em;cursor:pointer;font-family:inherit;
+  transition:.15s;
+}
+#chi-modal .opt-btn:hover{background:#0284c7;transform:scale(1.03);}
+#chi-modal .pass-btn{
+  background:#64748b;color:#fff;border:none;border-radius:8px;
+  padding:8px 16px;width:100%;cursor:pointer;font-family:inherit;font-size:.95em;
+}
+
+/* ===== 勝利畫面 ===== */
+#win-overlay{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(15,23,42,.95);display:none;
+  flex-direction:column;justify-content:center;align-items:center;
+  z-index:1000;color:#fff;backdrop-filter:blur(10px);
+}
+#win-title{
+  font-size:2.6em;margin-bottom:14px;
+  background:linear-gradient(to right,#facc15,#f59e0b);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  text-align:center;padding:0 20px;animation:popIn .5s;
+}
+#win-detail{
+  color:#e2e8f0;margin:8px 0 20px;font-size:.95em;
+  text-align:center;max-width:440px;padding:0 20px;
+  line-height:1.7;
+}
+.big-btn{
+  padding:17px 42px;font-size:21px;font-weight:bold;
+  background:var(--green);color:#fff;border:none;border-radius:50px;
+  cursor:pointer;box-shadow:0 0 30px rgba(16,185,129,.5);
+  transition:.3s;margin-top:10px;font-family:inherit;
+}
+.big-btn:hover{transform:scale(1.1);}
+
+/* ===== 捲軸美化 ===== */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:rgba(0,0,0,.1);}
+::-webkit-scrollbar-thumb{background:#475569;border-radius:3px;}
+</style>
+</head>
+<body>
+
+<!-- ============ 大廳 ============ -->
+<div id="mainMenu" class="container">
+  <h1 style="background:linear-gradient(to right,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;">🎮 遊戲大廳</h1>
+  <div class="stats-bar">
+    <div>大廳閒置 <b id="lobbyCount">0</b></div>
+    <div>遊戲中 <b id="inGameCount">0</b></div>
+  </div>
+  <div id="allRooms" style="min-height:50px;">搜尋中...</div>
+  <hr style="border:0;border-top:1px solid rgba(255,255,255,.12);margin:18px 0;">
+  <button class="menu-btn" style="background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #e74c3c;" onclick="showCreate('big2')">🃏 創立 台灣大老二</button>
+  <button class="menu-btn" style="background:linear-gradient(135deg,#1a3a1a,#0c200c);border:2px solid #27ae60;" onclick="showCreate('mahjong')">🀄 創立 台灣麻將</button>
+</div>
+
+<!-- ============ 建立房間 ============ -->
+<div id="createSection" class="container hidden">
+  <h3 id="createTitle">創立房間</h3>
+  <div class="input-row"><label>房間名稱:</label><input id="roomName" type="text" placeholder="輸入房間名稱"></div>
+  <div class="input-row"><label>密碼 (可留空):</label><input id="roomPass" type="password" placeholder="無密碼"></div>
+  <button class="menu-btn" id="btnCreate" onclick="doCreateRoom()">確認創立</button>
+  <button class="btn-sm" style="background:transparent;border:1px solid #64748b;color:#cbd5e1;margin-top:8px;" onclick="showSec('mainMenu')">← 返回大廳</button>
+</div>
+
+<!-- ============ 遊戲區 ============ -->
+<div id="gameArea" class="container hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <h3 id="roomTitle" style="margin:0;font-size:1em;"></h3>
+    <button class="btn-sm btn-r" onclick="leaveRoom()">離開</button>
+  </div>
+  <div id="gStatus" style="font-size:.95em;color:#f87171;min-height:22px;margin-bottom:6px;"></div>
+
+  <!-- 大老二 -->
+  <div id="b2-wrapper" class="hidden">
+    <div class="b2-header">
+      <span id="b2-hdr-left" style="font-weight:bold;">等待玩家...</span>
+      <span id="b2-hdr-right" style="color:var(--muted);font-size:.85em;"></span>
+    </div>
+    <div class="b2-opps" id="b2-opps"></div>
+    <div class="b2-center">
+      <div id="b2-last-info" style="font-size:.82em;color:var(--muted);min-height:16px;"></div>
+      <div class="b2-play-area" id="b2-play-area">
+        <span style="color:rgba(255,255,255,.25);font-size:.85em;">等待出牌...</span>
+      </div>
+      <div id="b2-combo-lbl" style="font-size:.83em;color:#facc15;min-height:18px;"></div>
+    </div>
+    <div class="b2-ctrl" id="b2-ctrl">
+      <button id="b2-btn-start" class="gbtn gbtn-start hidden" onclick="b2Start()">開始遊戲</button>
+      <button id="b2-btn-play"  class="gbtn gbtn-play  hidden" onclick="b2Play()">出牌</button>
+      <button id="b2-btn-pass"  class="gbtn gbtn-pass  hidden" onclick="b2Pass()">PASS</button>
+    </div>
+    <div class="b2-hand" id="b2-hand"></div>
+  </div>
+
+  <!-- 麻將 -->
+  <div id="mj-wrapper" class="hidden" style="position:relative;">
+    <div class="mj-header">
+      <span class="mj-chip" id="mj-banker">🏦 莊: -</span>
+      <span class="mj-chip" id="mj-wind">🌀 圈: 東</span>
+      <span class="mj-chip" id="mj-wall">🀄 牌山: -</span>
+      <span class="mj-chip" id="mj-money">💰 -</span>
+      <span class="mj-chip" id="mj-dora">🌟 臺風: -</span>
+    </div>
+    <div class="mj-opps" id="mj-opps"></div>
+    <div class="mj-center">
+      <div class="mj-status" id="mj-status">等待玩家加入...</div>
+      <div class="discard-label">棄牌</div>
+      <div class="discard-box" id="mj-discards"></div>
+    </div>
+    <div class="mj-ctrl" id="mj-ctrl">
+      <button id="mj-btn-start"   class="gbtn gbtn-start  hidden" onclick="mjStart()">開始麻將</button>
+      <button id="mj-btn-draw"    class="gbtn gbtn-purple hidden" onclick="mjDraw()">摸牌</button>
+      <button id="mj-btn-discard" class="gbtn gbtn-play   hidden" onclick="mjDiscard()">打牌</button>
+    </div>
+    <!-- 吃/碰/槓/胡 動作面板（預載於上方，動態啟用） -->
+    <div class="act-overlay hidden" id="mj-actions"></div>
+    <!-- 自己的花牌展示區 -->
+    <div style="margin:6px 0 0;font-size:.78em;color:var(--muted);text-align:left;padding-left:6px;">🌸 我的花牌</div>
+    <div class="mj-flowers" id="mj-flowers"></div>
+    <div class="meld-area my-melds" id="mj-my-melds"></div>
+    <div class="mj-hand" id="mj-hand"></div>
+  </div>
+
+  <!-- 聊天 -->
+  <div id="chat-area">
+    <div style="margin-bottom:7px;font-size:.88em;color:var(--muted);">
+      我是: <span id="myName" class="name-edit" onclick="editName()">玩家</span> ✎
+    </div>
+    <div id="chat-msgs"></div>
+    <div class="chat-row">
+      <input id="chatInput" type="text" placeholder="輸入訊息..." onkeypress="if(event.key==='Enter')sendMsg()">
+      <button onclick="sendMsg()">傳送</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 勝利畫面 ============ -->
+<div id="win-overlay">
+  <div id="win-title">🎉 遊戲結束</div>
+  <div id="win-detail"></div>
+  <button class="big-btn" onclick="doRestart()">🔄 再玩一局</button>
+  <button style="margin-top:18px;background:none;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.6);padding:8px 20px;border-radius:20px;cursor:pointer;font-family:inherit;" onclick="document.getElementById('win-overlay').style.display='none'">暫時關閉</button>
+</div>
+
+<!-- ============ 吃牌選擇 Modal ============ -->
+<div id="chi-modal">
+  <div class="box">
+    <h4>選擇吃牌組合</h4>
+    <div class="opts" id="chi-opts"></div>
+    <button class="pass-btn" onclick="closeChiModal(true)">PASS</button>
+  </div>
+</div>
+
+<!-- ============ 暱稱 Modal ============ -->
+<div id="nameModal" class="modal-bg hidden">
+  <div class="modal-box">
+    <h3 id="modalTitle">👇 輸入暱稱進入房間</h3>
+    <input id="nameInput" type="text" maxlength="10" placeholder="你的名字..." style="width:85%;font-size:1.05em;padding:12px;margin-bottom:18px;" onkeypress="if(event.key==='Enter')submitName()">
+    <div>
+      <button class="modal-btn mbtn-ok" onclick="submitName()">確定</button>
+      <button class="modal-btn mbtn-cancel" onclick="closeNameModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+/* ============================================================
+   Firebase 初始化
+============================================================ */
+import { initializeApp }           from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+import { getDatabase, ref, set, get, push, update, remove,
+         onValue, onDisconnect, serverTimestamp, runTransaction }
+  from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyC7PZLTTNf17cfp9gCHudWiWX8SYPSCdDI",
+  authDomain:        "onlineeasyraygame.firebaseapp.com",
+  databaseURL:       "https://onlineeasyraygame-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "onlineeasyraygame",
+  storageBucket:     "onlineeasyraygame.firebasestorage.app",
+  messagingSenderId: "622138442346",
+  appId:             "1:622138442346:web:375980b448fb9b3f428013",
+  measurementId:     "G-ZDEGMGYGVB"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+/* ============================================================
+   全域狀態
+============================================================ */
+let myName        = localStorage.getItem('playerName') || null;
+let currentRoomId = null;
+let currentKey    = null;   // Firebase push key for current user
+let currentType   = null;   // 'big2' | 'mahjong'
+let roomCache     = null;
+let unsubRoom     = null;
+let pendingRoomId = null;
+let pendingDbPath = null;
+let pendingData   = null;
+let selGameType   = 'big2';
+let presenceTimer = null;
+
+let b2Sel  = [];            // 大老二選牌 index 陣列
+let b2Busy = false;
+let mjSel  = -1;            // 麻將選牌 index
+let mjBusy = false;
+
+const DB = { big2: 'big_2_room', mahjong: 'majong_room' };
+const ROOM_SEAT_PREFIX = 'lockedSeatKey';
+const MJ_ACTION_TIMEOUT = 45000;
+
+function seatStorageKey(dbKey,id){ return `${ROOM_SEAT_PREFIX}:${dbKey}:${id}`; }
+
+function findReusableSeatKey(data, name, dbKey, roomId){
+  if(!data||!name) return null;
+  const users=data.users||{};
+  const saved=localStorage.getItem(seatStorageKey(dbKey,roomId));
+  if(saved && users[saved]?.name===name) return saved;
+  const order=data.playerOrder||[];
+  const ordered=order.find(pid=>users[pid]?.name===name);
+  if(ordered) return ordered;
+  const any=Object.entries(users).find(([,u])=>u?.name===name);
+  return any ? any[0] : null;
+}
+
+/* ============================================================
+   玩家名稱初始化
+============================================================ */
+async function initName() {
+  if (!myName) {
+    try {
+      const res = await runTransaction(ref(db,'ongame_global/player_seq'), cur => (cur === null || cur >= 99) ? 1 : cur + 1);
+      myName = `玩家${res.committed ? res.snapshot.val() : Math.floor(Math.random()*99+1)}`;
+    } catch { myName = `玩家${Math.floor(Math.random()*99+1)}`; }
+    localStorage.setItem('playerName', myName);
+  }
+  const el = document.getElementById('myName');
+  if (el) el.textContent = myName;
+}
+initName();
+
+/* ============================================================
+   在線人數
+============================================================ */
+let onlineTotal = 0, inGameTotal = 0;
+const meRef = push(ref(db,'online'));
+onDisconnect(meRef).remove();
+set(meRef, true);
+onValue(ref(db,'online'), s => {
+  onlineTotal = s.val() ? Object.keys(s.val()).length : 0;
+  updateStats();
+});
+function updateStats() {
+  document.getElementById('lobbyCount').textContent  = Math.max(0, onlineTotal - inGameTotal);
+  document.getElementById('inGameCount').textContent = inGameTotal;
+}
+
+/* ============================================================
+   大廳：讀房間
+============================================================ */
+let big2Rooms = {}, mjRooms = {};
+onValue(ref(db,'big_2_room'), s => { big2Rooms = s.val() || {}; renderLobby(); });
+onValue(ref(db,'majong_room'), s => { mjRooms   = s.val() || {}; renderLobby(); });
+
+function renderLobby() {
+  const c = document.getElementById('allRooms');
+  c.innerHTML = '';
+  inGameTotal = 0;
+  let any = false;
+
+  const render = (rooms, dbKey, emoji, label) => {
+    Object.entries(rooms).reverse().forEach(([id, r]) => {
+      if (!r) return;
+      any = true;
+      const uList = Object.values(r.users||{}).filter(u=>u && u.online!==false);
+      inGameTotal += uList.length;
+      const playing = r.gameState === 'playing';
+      const badge   = playing
+        ? '<span class="badge badge-play">遊戲中</span>'
+        : '<span class="badge badge-wait">等待中</span>';
+      const lock    = r.password ? '🔒' : '';
+      const pass    = r.password || '';
+      const meta    = `${label} | ${uList.length}人`;
+      const div = document.createElement('div');
+      div.className = 'room-item';
+      div.innerHTML = `
+        <div class="room-info">
+          <span class="room-name">${emoji} ${r.name||'房間'} ${lock} ${badge}</span>
+          <div class="room-meta">${meta}</div>
+        </div>
+        <div>
+          <button class="btn-sm btn-g" onclick="tryJoin('${id}','${dbKey}','${pass}')">加入</button>
+          <button class="btn-sm btn-r" onclick="delRoom('${id}','${dbKey}')">刪除</button>
+        </div>`;
+      c.appendChild(div);
+    });
+  };
+
+  render(big2Rooms, 'big_2_room', '🃏','台灣大老二');
+  render(mjRooms,   'majong_room','🀄','台灣麻將');
+  if (!any) c.innerHTML = "<p style='color:var(--muted);margin:18px 0;'>目前沒有房間，來開一個吧！</p>";
+  updateStats();
+}
+
+window.delRoom = (id,dbKey) => { if(confirm('確定刪除此房間？')) remove(ref(db,`${dbKey}/${id}`)); };
+
+/* ============================================================
+   建立房間
+============================================================ */
+window.showCreate = type => {
+  selGameType = type;
+  document.getElementById('createTitle').textContent =
+    type === 'big2' ? '創立 台灣大老二 房間' : '創立 台灣麻將 房間';
+  showSec('createSection');
+};
+
+window.doCreateRoom = () => {
+  const name = document.getElementById('roomName').value.trim() || '好玩房間';
+  const pass = document.getElementById('roomPass').value;
+  const dbKey = DB[selGameType];
+  const r     = push(ref(db, dbKey));
+  set(r, {
+    name, password: pass, type: selGameType,
+    users:{}, gameState:'waiting', chat:{},
+    createdAt: Date.now()
+  }).then(() => tryJoin(r.key, dbKey, pass));
+  document.getElementById('roomName').value = '';
+  document.getElementById('roomPass').value = '';
+};
+
+/* ============================================================
+   加入房間
+============================================================ */
+window.tryJoin = async (id, dbKey, pass) => {
+  if (pass && pass !== 'undefined' && pass !== '') {
+    const inp = prompt('此房間有密碼，請輸入：');
+    if (inp !== pass) { alert('密碼錯誤！'); return; }
+  }
+  const snap = await get(ref(db, `${dbKey}/${id}`));
+  const data = snap.val();
+  if (!data) { alert('房間不存在！'); return; }
+  pendingRoomId = id;
+  pendingDbPath = dbKey;
+  pendingData   = data;
+  document.getElementById('nameInput').value  = myName || '';
+  document.getElementById('modalTitle').textContent = '👇 輸入暱稱進入房間';
+  document.getElementById('nameModal').classList.remove('hidden');
+  document.getElementById('nameInput').focus();
+};
+
+window.closeNameModal = () => {
+  document.getElementById('nameModal').classList.add('hidden');
+  pendingRoomId = pendingDbPath = pendingData = null;
+};
+
+window.submitName = () => {
+  const n = document.getElementById('nameInput').value.trim();
+  if (!n) return;
+  // 重複名稱檢查
+  const reusableKey = findReusableSeatKey(pendingData, n, pendingDbPath, pendingRoomId);
+  for (const [key,u] of Object.entries(pendingData.users||{})) {
+    if (u && u.name === n && u.online !== false && key !== reusableKey) {
+      document.getElementById('modalTitle').textContent = '此暱稱已被使用，請換一個！';
+      return;
+    }
+  }
+  myName = n;
+  localStorage.setItem('playerName', myName);
+  document.getElementById('myName').textContent = myName;
+  const id = pendingRoomId, dbKey = pendingDbPath;
+  closeNameModal();
+  enterRoom(id, dbKey);
+};
+
+/* ============================================================
+   進入 / 離開房間
+============================================================ */
+async function enterRoom(id, dbKey) {
+  currentRoomId = id;
+  currentType   = dbKey === 'big_2_room' ? 'big2' : 'mahjong';
+
+  const roomSnap = await get(ref(db, `${dbKey}/${id}`));
+  const roomData = roomSnap.val() || pendingData || {};
+  currentKey = findReusableSeatKey(roomData, myName, dbKey, id);
+  let uRef;
+  if (currentKey) {
+    uRef = ref(db, `${dbKey}/${id}/users/${currentKey}`);
+    await update(uRef, { name: myName, online: true, rejoinedAt: Date.now() });
+  } else {
+    uRef = push(ref(db, `${dbKey}/${id}/users`));
+    currentKey = uRef.key;
+    await set(uRef, { name: myName, online: true, joinedAt: Date.now() });
+  }
+  localStorage.setItem(seatStorageKey(dbKey,id), currentKey);
+  onDisconnect(uRef).update({ online: false });
+  clearInterval(presenceTimer);
+  presenceTimer = setInterval(()=>{
+    if(currentRoomId&&currentKey&&currentType) update(ref(db,`${DB[currentType]}/${currentRoomId}/users/${currentKey}`),{online:true,lastSeen:Date.now()});
+  },15000);
+
+  document.getElementById('roomTitle').textContent =
+    `${currentType==='big2'?'🃏 大老二':'🀄 麻將'} — ${pendingData ? pendingData.name : ''}`;
+  showSec('gameArea');
+  document.getElementById('b2-wrapper').classList.toggle('hidden', currentType !== 'big2');
+  document.getElementById('mj-wrapper').classList.toggle('hidden', currentType !== 'mahjong');
+
+  if (unsubRoom) unsubRoom();
+  unsubRoom = onValue(ref(db, `${dbKey}/${id}`), snap => {
+    const d = snap.val();
+    if (!d) { leaveRoom(); return; }
+    roomCache = d;
+    if (currentType === 'big2')    renderB2(d);
+    else                           renderMJ(d);
+    renderChat(d.chat);
+  });
+}
+
+window.leaveRoom = () => {
+  clearInterval(presenceTimer);
+  if (currentRoomId && currentKey) {
+    update(ref(db,`${DB[currentType]}/${currentRoomId}/users/${currentKey}`),{online:false})
+      .finally(()=>{ if(unsubRoom) unsubRoom(); location.reload(); });
+  } else location.reload();
+};
+
+/* ============================================================
+ ██████╗ ██╗ ██████╗      ██████╗
+ ██╔══██╗██║██╔════╝     ╚════██╗
+ ██████╔╝██║██║  ███╗     █████╔╝
+ ██╔══██╗██║██║   ██║    ██╔═══╝
+ ██████╔╝██║╚██████╔╝    ███████╗
+ ╚═════╝ ╚═╝ ╚═════╝     ╚══════╝
+   台灣大老二完整規則
+============================================================ */
+
+/* 牌值定義 */
+const B2R  = ['3','4','5','6','7','8','9','10','J','Q','K','A','2']; // 3最小
+const B2S  = ['♣','♦','♥','♠'];                                     // ♣梅花最小, ♠黑桃最大
+const b2rv = r => B2R.indexOf(r);
+const b2sv = s => B2S.indexOf(s);
+const b2cv = c => b2rv(c.rank)*4 + b2sv(c.suit);
+const isRed = s => s==='♦'||s==='♥';
+
+function b2Deck() {
+  const d=[];
+  B2R.forEach(r=>B2S.forEach(s=>d.push({rank:r,suit:s})));
+  return d.sort(()=>Math.random()-.5);
+}
+
+function b2Sort(hand) { return [...hand].sort((a,b)=>b2cv(a)-b2cv(b)); }
+
+/* 牌型判斷 */
+function b2Combo(cards) {
+  if (!cards||!cards.length) return null;
+  const n=cards.length;
+  const s=[...cards].sort((a,b)=>b2cv(a)-b2cv(b));
+  const rv=s.map(c=>b2rv(c.rank));
+  const rk=s.map(c=>c.rank);
+
+  if(n===1) return {type:'single',val:b2cv(s[0])};
+  if(n===2) {
+    if(rk[0]===rk[1]) return {type:'pair',val:b2cv(s[1])};
+    return null;
+  }
+  // 已移除三條：n===3 不再是合法組合
+  if(n===5) {
+    const cnt={};
+    rk.forEach(r=>cnt[r]=(cnt[r]||0)+1);
+    const gr=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+    const sameSuit=cards.every(c=>c.suit===cards[0].suit);
+    const seq=rv.every((v,i)=>i===0||v===rv[i-1]+1);
+    // 同花順 > 四條 > 葫蘆 > 同花 > 順子
+    if(sameSuit&&seq) return {type:'sf',val:b2cv(s[4]),pow:6};
+    if(gr[0][1]===4) {
+      const fh=s.filter(c=>c.rank===gr[0][0]).sort((a,b)=>b2cv(b)-b2cv(a))[0];
+      return {type:'four',val:b2cv(fh),pow:5};
+    }
+    if(gr[0][1]===3&&(gr[1]||[0])[1]===2) {
+      const th=s.filter(c=>c.rank===gr[0][0]).sort((a,b)=>b2cv(b)-b2cv(a))[0];
+      return {type:'fh',val:b2cv(th),pow:4};
+    }
+    if(sameSuit) return {type:'flush',val:b2cv(s[4]),pow:3};
+    if(seq) return {type:'str',val:b2cv(s[4]),pow:2};
+    return null;
+  }
+  return null;
+}
+
+function b2CanBeat(mine,top) {
+  if(!top||!top.length) return true;
+  const mc=b2Combo(mine), tc=b2Combo(top);
+  if(!mc) return false;
+  // === 怪物壓牌邏輯（斬單/斬雙）===
+  // 鐵支(four) 或 同花順(sf) 可壓任意長度；同花順 > 鐵支
+  const myBomb = (mc.type==='four'||mc.type==='sf');
+  const topBomb= tc && (tc.type==='four'||tc.type==='sf');
+  if(myBomb && (!tc || !topBomb || mine.length!==top.length)){
+    // 對手不是炸彈，或長度不同 → 直接壓
+    if(!tc || !topBomb) return true;
+    // 同為炸彈但長度不同 → 不可能（兩者皆5張）
+  }
+  if(!tc) return false;
+  // 同為炸彈：比較 pow（sf=6 > four=5），再比 val
+  if(myBomb && topBomb){
+    if((mc.pow||0)!==(tc.pow||0)) return (mc.pow||0)>(tc.pow||0);
+    return mc.val>tc.val;
+  }
+  // 一般規則：長度必須相同
+  if(mine.length!==top.length) return false;
+  if(mine.length===5) {
+    if((mc.pow||0)!==(tc.pow||0)) return (mc.pow||0)>(tc.pow||0);
+    return mc.val>tc.val;
+  }
+  if(mc.type!==tc.type) return false;
+  return mc.val>tc.val;
+}
+
+const b2CName={single:'單張',pair:'對子',str:'順子',flush:'同花',fh:'葫蘆',four:'鐵支(四條+1)',sf:'同花順'};
+
+/* 開始遊戲 */
+window.b2Start = async () => {
+  if(b2Busy) return;
+  const d=roomCache;
+  const uList=Object.entries(d.users||{}).filter(([,u])=>u&&u.online!==false);
+  if(uList.length<2){alert('至少2位玩家！');return;}
+  if(uList.length>4){alert('大老二最多4位玩家！');return;}
+  b2Busy=true;
+  const order=uList.map(([k])=>k);
+  const deck=b2Deck();
+  const hands={};
+  // === 依人數發牌 ===
+  // 2人 → 每人26張
+  // 3人 → 每人17張（持有 ♣3 的玩家多1張 = 18張）
+  // 4人 → 每人13張
+  const N=order.length;
+  if(N===2){
+    order.forEach(pid=>{ hands[pid]=deck.splice(0,26); });
+  } else if(N===3){
+    order.forEach(pid=>{ hands[pid]=deck.splice(0,17); });
+    // 把牌堆剩下的最後一張 ♣3 補給該玩家
+    // 先找出誰拿到 ♣3，再從牌堆中再發1張給他
+    let c3Holder=order.find(pid=>hands[pid].some(c=>c.rank==='3'&&c.suit==='♣'));
+    if(!c3Holder){
+      // ♣3 還留在牌堆裡，找一張未發牌
+      const remIdx=deck.findIndex(c=>c.rank==='3'&&c.suit==='♣');
+      // 隨機指定一位玩家持有
+      c3Holder=order[0];
+      if(remIdx>=0){
+        hands[c3Holder].push(deck.splice(remIdx,1)[0]);
+      }
+    } else if(deck.length){
+      // 已持有 ♣3，再多發一張
+      hands[c3Holder].push(deck.shift());
+    }
+  } else {
+    order.forEach(pid=>{ hands[pid]=deck.splice(0,13); });
+  }
+  // 找 ♣3（梅花3，最小花色）先手
+  let si=0;
+  for(let i=0;i<order.length;i++){
+    if(hands[order[i]].some(c=>c.rank==='3'&&c.suit==='♣')){si=i;break;}
+  }
+  await update(ref(db,`big_2_room/${currentRoomId}`),{
+    gameState:'playing',playerOrder:order,hands,
+    turnIndex:si,topCards:[],topPlayerId:null,
+    passCount:0,finishedPlayers:[],
+    roundNum:(d.roundNum||0)+1
+  });
+  b2Busy=false;
+};
+
+/* 出牌 */
+window.b2Play = async () => {
+  if(b2Busy||!b2Sel.length) return;
+  const d=roomCache;
+  if(!d||d.gameState!=='playing') return;
+  const order=d.playerOrder||[];
+  if(order[d.turnIndex]!==currentKey) return;
+  const myHand=[...(d.hands?.[currentKey]||[])];
+  const played=b2Sel.map(i=>myHand[i]);
+  const combo=b2Combo(played);
+  if(!combo){alert('無效的組合！\n可出：單張、對子、順子(5張)、同花(5張)、葫蘆(5張)、鐵支(5張)、同花順(5張)\n※ 鐵支與同花順為最大，可壓任何牌型');return;}
+  // 首輪必須包含 ♣3（梅花3，因花色順序改為 ♣<♦<♥<♠）
+  if((!d.topCards||!d.topCards.length)&&myHand.some(c=>c.rank==='3'&&c.suit==='♣')&&!played.some(c=>c.rank==='3'&&c.suit==='♣')){
+    alert('第一手必須包含 ♣3 (梅花3)！');return;
+  }
+  if(d.topCards&&d.topCards.length&&!b2CanBeat(played,d.topCards)){
+    alert('出牌壓不過！請選更大的牌。');return;
+  }
+  b2Busy=true;
+  const newHand=myHand.filter((_,i)=>!b2Sel.includes(i));
+  b2Sel=[];
+  const upd={};
+  upd[`hands/${currentKey}`]=newHand;
+  upd['topCards']=played;
+  upd['topPlayerId']=currentKey;
+  upd['passCount']=0;
+  const fin=[...(d.finishedPlayers||[])];
+  if(!newHand.length) fin.push(currentKey);
+  upd['finishedPlayers']=fin;
+  // 勝利判斷
+  const remaining=order.filter(p=>!fin.includes(p));
+  if(remaining.length<=0||(remaining.length===1&&order.length>1)){
+    upd['gameState']='ended';
+    const winN=d.users?.[currentKey]?.name||myName;
+    upd['winnerName']=winN;
+    upd['winnerId']=currentKey;
+  } else {
+    // 找下一個未完成玩家
+    let ni=(order.indexOf(currentKey)+1)%order.length;
+    for(let t=0;t<order.length;t++){
+      if(!fin.includes(order[ni])) break;
+      ni=(ni+1)%order.length;
+    }
+    upd['turnIndex']=ni;
+  }
+  await update(ref(db,`big_2_room/${currentRoomId}`),upd);
+  b2Busy=false;
+};
+
+/* PASS */
+window.b2Pass = async () => {
+  if(b2Busy) return;
+  const d=roomCache;
+  if(!d||d.gameState!=='playing') return;
+  const order=d.playerOrder||[];
+  if(order[d.turnIndex]!==currentKey) return;
+  if(!d.topCards||!d.topCards.length){alert('第一手不能PASS！');return;}
+  b2Busy=true;
+  const fin=d.finishedPlayers||[];
+  const active=order.filter(p=>!fin.includes(p));
+  const newPass=(d.passCount||0)+1;
+  const upd={};
+  // 如果所有非出牌方都PASS，清桌
+  if(newPass>=active.length-1){
+    upd['topCards']=[];upd['topPlayerId']=null;upd['passCount']=0;
+  } else {
+    upd['passCount']=newPass;
+  }
+  let ni=(order.indexOf(currentKey)+1)%order.length;
+  for(let t=0;t<order.length;t++){
+    if(!fin.includes(order[ni])) break;
+    ni=(ni+1)%order.length;
+  }
+  upd['turnIndex']=ni;
+  await update(ref(db,`big_2_room/${currentRoomId}`),upd);
+  b2Busy=false;
+};
+
+/* 渲染大老二 */
+function renderB2(d) {
+  const order=d.playerOrder||[];
+  const isMe=order[d.turnIndex]===currentKey;
+  const fin=d.finishedPlayers||[];
+  const top=d.topCards||[];
+
+  // Header
+  const nameOf=pid=>d.users?.[pid]?.name||'?';
+  if(d.gameState==='waiting'){
+    document.getElementById('b2-hdr-left').textContent='等待玩家中...';
+    document.getElementById('b2-hdr-right').textContent=`${Object.values(d.users||{}).filter(u=>u&&u.online!==false).length} 人`;
+  } else if(d.gameState==='playing'){
+    document.getElementById('b2-hdr-left').innerHTML=isMe
+      ?'<span style="color:#4ade80;animation:pulse 1.5s infinite;">⭐ 輪到你！</span>'
+      :`等待 ${nameOf(order[d.turnIndex])} 出牌...`;
+    document.getElementById('b2-hdr-right').textContent=`第${d.roundNum||1}局`;
+  } else {
+    document.getElementById('b2-hdr-left').innerHTML=`<span style="color:#facc15;">🏆 ${d.winnerName||'?'} 勝！</span>`;
+    document.getElementById('b2-hdr-right').textContent='';
+    if(d.winnerId) showWin(`🃏 大老二`,`🏆 ${d.winnerName||'?'} 率先出完所有牌！`);
+  }
+
+  // 對手
+  const oppEl=document.getElementById('b2-opps');
+  oppEl.innerHTML='';
+  order.forEach((pid,i)=>{
+    const u=d.users?.[pid]; if(!u) return;
+    const hLen=(d.hands?.[pid]||[]).length;
+    const done=fin.includes(pid);
+    const div=document.createElement('div');
+    div.className='b2-opp'+(i===d.turnIndex?' active':'')+(done?' done':'');
+    div.innerHTML=`<div class="opp-nm" title="${u.name}">${pid===currentKey?'👤 ':''}"${u.name}"</div>
+      <div class="opp-cnt">${done?'✅已出完':`🃏${hLen}張`}</div>`;
+    oppEl.appendChild(div);
+  });
+
+  // 桌面
+  const pa=document.getElementById('b2-play-area');
+  pa.innerHTML='';
+  if(top.length){
+    top.forEach(c=>{ const el=makePCard(c); el.classList.add('off'); el.style.cursor='default'; pa.appendChild(el); });
+    const tc=b2Combo(top);
+    document.getElementById('b2-last-info').textContent=`${nameOf(d.topPlayerId)} 出了 ${tc?b2CName[tc.type]||tc.type:'?'}`;
+    document.getElementById('b2-combo-lbl').textContent=tc?b2CName[tc.type]:'';
+  } else {
+    pa.innerHTML='<span style="color:rgba(255,255,255,.25);font-size:.85em;">新一輪，自由出牌</span>';
+    document.getElementById('b2-last-info').textContent='';
+    document.getElementById('b2-combo-lbl').textContent='';
+  }
+
+  // 手牌
+  const handEl=document.getElementById('b2-hand');
+  handEl.innerHTML='';
+  if(d.hands?.[currentKey]){
+    const sorted=b2Sort(d.hands[currentKey]);
+    sorted.forEach((c,i)=>{
+      const el=makePCard(c);
+      if(b2Sel.includes(i)) el.classList.add('sel');
+      if(!isMe||d.gameState!=='playing') el.classList.add('off');
+      el.onclick=()=>{
+        if(!isMe||d.gameState!=='playing') return;
+        const idx=b2Sel.indexOf(i);
+        if(idx>=0) b2Sel.splice(idx,1); else b2Sel.push(i);
+        renderB2(roomCache);
+      };
+      handEl.appendChild(el);
+    });
+  }
+
+  // 按鈕
+  const bStart=document.getElementById('b2-btn-start');
+  const bPlay=document.getElementById('b2-btn-play');
+  const bPass=document.getElementById('b2-btn-pass');
+  if(d.gameState==='waiting'){
+    bStart.classList.remove('hidden'); bPlay.classList.add('hidden'); bPass.classList.add('hidden');
+    bStart.textContent='開始遊戲';
+  } else if(d.gameState==='playing'){
+    bStart.classList.add('hidden'); bPlay.classList.remove('hidden'); bPass.classList.remove('hidden');
+    bPlay.disabled=!isMe||!b2Sel.length;
+    bPass.disabled=!isMe||!top.length;
+  } else {
+    bStart.classList.remove('hidden'); bPlay.classList.add('hidden'); bPass.classList.add('hidden');
+    bStart.textContent='再玩一局';
+  }
+}
+
+function makePCard(c) {
+  const red=isRed(c.suit);
+  const el=document.createElement('div');
+  el.className=`pc ${red?'rd':'bk'}`;
+  el.innerHTML=`<div class="tl">${c.rank}<br>${c.suit}</div><div class="mid">${c.suit}</div><div class="br">${c.rank}</div>`;
+  return el;
+}
+
+/* ============================================================
+ ███╗   ███╗ █████╗ ██╗  ██╗     ██╗ ██████╗ ███╗   ██╗ ██████╗
+ ████╗ ████║██╔══██╗██║  ██║     ██║██╔═══██╗████╗  ██║██╔════╝
+ ██╔████╔██║███████║███████║     ██║██║   ██║██╔██╗ ██║██║  ███╗
+ ██║╚██╔╝██║██╔══██║██╔══██║██   ██║██║   ██║██║╚██╗██║██║   ██║
+ ██║ ╚═╝ ██║██║  ██║██║  ██║╚█████╔╝╚██████╔╝██║ ╚████║╚██████╔╝
+ ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚════╝  ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝
+  台灣麻將（16張手牌，台式規則）
+============================================================ */
+
+/* ---- 牌組定義（採用完整 Unicode 麻將字元） ---- */
+// 萬: 🀇🀈🀉🀊🀋🀌🀍🀎🀏 (一~九萬)
+// 筒: 🀙🀚🀛🀜🀝🀞🀟🀠🀡 (一~九筒)
+// 索: 🀐🀑🀒🀓🀔🀕🀖🀗🀘 (一~九索)
+// 字: 🀀🀁🀂🀃 (東南西北) 🀄🀅🀆 (中發白)
+// 花: 🀢🀣🀤🀥 (春夏秋冬) 🀦🀧🀨🀩 (梅蘭竹菊)
+// 背: 🀫
+const MAN_GLYPH  = ['🀇','🀈','🀉','🀊','🀋','🀌','🀍','🀎','🀏'];
+const PIN_GLYPH  = ['🀙','🀚','🀛','🀜','🀝','🀞','🀟','🀠','🀡'];
+const SOU_GLYPH  = ['🀐','🀑','🀒','🀓','🀔','🀕','🀖','🀗','🀘'];
+const JIHAI_GLYPH= ['🀀','🀁','🀂','🀃','🀄','🀅','🀆'];     // 東南西北中發白
+const FLOWER_GLYPH=['🀢','🀣','🀤','🀥','🀦','🀧','🀨','🀩']; // 春夏秋冬梅蘭竹菊
+const FLOWER_NAME=['春','夏','秋','冬','梅','蘭','竹','菊'];
+const TILE_BACK  = '🀫';
+
+const MAN_NUM  = ['一','二','三','四','五','六','七','八','九'];
+const JIHAI_D  = ['東','南','西','北','中','發','白'];
+
+function buildMjDeck() {
+  const tiles=[];
+  let uid=0;
+  MAN_GLYPH.forEach((g,i)=>{ for(let j=0;j<4;j++) tiles.push({uid:uid++,id:`m${i+1}`,suit:'man',num:i+1,disp:g}); });
+  PIN_GLYPH.forEach((g,i)=>{ for(let j=0;j<4;j++) tiles.push({uid:uid++,id:`p${i+1}`,suit:'pin',num:i+1,disp:g}); });
+  SOU_GLYPH.forEach((g,i)=>{ for(let j=0;j<4;j++) tiles.push({uid:uid++,id:`s${i+1}`,suit:'sou',num:i+1,disp:g}); });
+  JIHAI_GLYPH.forEach((g,i)=>{ for(let j=0;j<4;j++) tiles.push({uid:uid++,id:`z${i+1}`,suit:'jihai',num:i+1,disp:g}); });
+  // 春夏秋冬梅蘭竹菊：每張各一
+  FLOWER_GLYPH.forEach((g,i)=>{ tiles.push({uid:uid++,id:`f${i+1}`,suit:'flower',num:i+1,disp:g,name:FLOWER_NAME[i]}); });
+  return tiles.sort(()=>Math.random()-.5);
+}
+
+function mjTileSort(a,b) {
+  const so={man:0,pin:100,sou:200,jihai:300,flower:400};
+  return (so[a.suit]||0)+a.num - ((so[b.suit]||0)+b.num);
+}
+function mjSortHand(h) { return [...h].sort(mjTileSort); }
+
+/* ---- 花牌：將手牌中的花牌全部抽出 ---- */
+function extractFlowers(hand){
+  const flowers=hand.filter(t=>t.suit==='flower');
+  const rest   =hand.filter(t=>t.suit!=='flower');
+  return {flowers,rest};
+}
+/* 自動補花：直到手中沒有花牌；deck 從前抽，花牌移到 flowerArr，從牌堆末尾補張 */
+function drawWithFlowerReplace(hand, flowerArr, deck){
+  // 不停從 deck.shift 對應位置補張，遇花就丟入 flowerArr
+  while(true){
+    const flo=hand.filter(t=>t.suit==='flower');
+    if(!flo.length) break;
+    flo.forEach(t=>flowerArr.push(t));
+    // 從 hand 移除花牌
+    for(let i=hand.length-1;i>=0;i--) if(hand[i].suit==='flower') hand.splice(i,1);
+    // 從牌山尾端補張（補花）
+    for(let i=0;i<flo.length;i++){
+      if(!deck.length) return; // 流局風險
+      hand.push(deck.pop());
+    }
+  }
+}
+
+/* ---- 胡牌判斷（台灣麻將 16張：5組+雀頭；亦相容14張） ---- */
+function mjIsWin(hand) {
+  if(hand.length!==14 && hand.length!==17) return false;
+  const cnt={};
+  hand.forEach(t=>cnt[t.id]=(cnt[t.id]||0)+1);
+  // 七對
+  const pairs=Object.values(cnt).filter(v=>v>=2).length;
+  if(hand.length===14 && pairs===7 && Object.values(cnt).every(v=>v===2)) return true;
+  // 嘗試所有雀頭
+  for(const id of Object.keys(cnt)){
+    if(cnt[id]<2) continue;
+    const rem={...cnt}; rem[id]-=2;
+    if(rem[id]===0) delete rem[id];
+    if(mjCanMeld(rem)) return true;
+  }
+  return false;
+}
+
+function mjCanMeld(cnt) {
+  const keys=Object.keys(cnt).filter(k=>cnt[k]>0);
+  if(!keys.length) return true;
+  // 找最小牌
+  const allT=[];
+  keys.forEach(id=>{ const t=MJ_TILE_MAP[id]; if(t) for(let i=0;i<cnt[id];i++) allT.push(t); });
+  allT.sort(mjTileSort);
+  const first=allT[0]; if(!first) return true;
+  const id=first.id;
+  // 嘗試刻子
+  if(cnt[id]>=3){
+    const r={...cnt}; r[id]-=3; if(r[id]<=0) delete r[id];
+    if(mjCanMeld(r)) return true;
+  }
+  // 嘗試順子（非字牌）
+  if(first.suit!=='jihai' && first.num<=7){
+    const id2=`${first.suit[0]}${first.num+1}`;
+    const id3=`${first.suit[0]}${first.num+2}`;
+    if(cnt[id2]>0 && cnt[id3]>0){
+      const r={...cnt}; r[id]-=1; r[id2]-=1; r[id3]-=1;
+      if(r[id]<=0) delete r[id]; if(r[id2]<=0) delete r[id2]; if(r[id3]<=0) delete r[id3];
+      if(mjCanMeld(r)) return true;
+    }
+  }
+  return false;
+}
+
+/* 建立 tile id -> tile 的 map */
+const MJ_TILE_MAP={};
+(()=>{
+  MAN_GLYPH.forEach((g,i)=>MJ_TILE_MAP[`m${i+1}`]={id:`m${i+1}`,suit:'man',num:i+1,disp:g});
+  PIN_GLYPH.forEach((g,i)=>MJ_TILE_MAP[`p${i+1}`]={id:`p${i+1}`,suit:'pin',num:i+1,disp:g});
+  SOU_GLYPH.forEach((g,i)=>MJ_TILE_MAP[`s${i+1}`]={id:`s${i+1}`,suit:'sou',num:i+1,disp:g});
+  JIHAI_GLYPH.forEach((g,i)=>MJ_TILE_MAP[`z${i+1}`]={id:`z${i+1}`,suit:'jihai',num:i+1,disp:g});
+  FLOWER_GLYPH.forEach((g,i)=>MJ_TILE_MAP[`f${i+1}`]={id:`f${i+1}`,suit:'flower',num:i+1,disp:g,name:FLOWER_NAME[i]});
+})();
+
+/* 判斷胡牌(考慮明面 melds)：需要 (5-meldsCount) 個面子 + 1 雀頭 */
+function mjIsWinWithMelds(hand, meldsCount){
+  const needSets = 5 - (meldsCount|0);
+  if(needSets < 0) return false;
+  if(hand.length !== needSets*3 + 2) return false;
+  const cnt={};
+  hand.forEach(t=>cnt[t.id]=(cnt[t.id]||0)+1);
+  // 七對僅在無明面組合時 (一定要 14 張)
+  if(meldsCount===0 && hand.length===14){
+    const allPair = Object.values(cnt).length===7 && Object.values(cnt).every(v=>v===2);
+    if(allPair) return true;
+  }
+  for(const id of Object.keys(cnt)){
+    if(cnt[id]<2) continue;
+    const rem={...cnt}; rem[id]-=2;
+    if(rem[id]===0) delete rem[id];
+    if(mjCanMeld(rem)) return true;
+  }
+  return false;
+}
+/* 聽牌：回傳所有可胡的 tile id */
+function mjTenpaiTiles(hand, meldsCount){
+  const res=[];
+  const ids=Object.keys(MJ_TILE_MAP).filter(k=>!k.startsWith('f'));
+  for(const id of ids){
+    const t=MJ_TILE_MAP[id];
+    if(mjIsWinWithMelds([...hand,t], meldsCount)) res.push(id);
+  }
+  return res;
+}
+
+/* ---- 吃 / 碰 / 槓 / 胡 / 自摸 判斷 ---- */
+const mjCanPeng  = (hand,t) => hand.filter(x=>x.id===t.id).length>=2;
+const mjCanGang  = (hand,t) => hand.filter(x=>x.id===t.id).length>=3;
+const mjCanHu    = (hand,t,meldsCount=0) => mjIsWinWithMelds([...hand,t], meldsCount);
+
+/* 暗槓：手中有 4 張同牌（摸進來時觸發），回傳所有可暗槓的 id */
+function mjCanAnGang(hand){
+  const c=countIds(hand);
+  return Object.entries(c).filter(([k,v])=>v>=4 && !k.startsWith('f')).map(([k])=>k);
+}
+/* 加槓：手中有 1 張同牌，且已有該牌的明刻（碰） */
+function mjCanAddGang(hand,melds){
+  const ids=hand.map(t=>t.id);
+  const r=[];
+  (melds||[]).forEach(m=>{
+    if(m.type==='peng' && ids.includes(m.tiles[0].id)) r.push(m.tiles[0].id);
+  });
+  return r;
+}
+/* 吃：只有上家可吃，且非字牌；回傳所有可能的吃法 [{combo:[a,b],type:'left/mid/right'}] */
+function mjCanChi(hand,t){
+  if(!t||t.suit==='jihai'||t.suit==='flower') return [];
+  const n=t.num, suit=t.suit, pref=suit[0];
+  const find=id=>hand.find(x=>x.id===id);
+  const opts=[];
+  // 左：t-2, t-1
+  if(n>=3){
+    const a=find(`${pref}${n-2}`), b=find(`${pref}${n-1}`);
+    if(a&&b) opts.push({combo:[a,b],kind:'left'});
+  }
+  // 中：t-1, t+1
+  if(n>=2&&n<=8){
+    const a=find(`${pref}${n-1}`), b=find(`${pref}${n+1}`);
+    if(a&&b) opts.push({combo:[a,b],kind:'mid'});
+  }
+  // 右：t+1, t+2
+  if(n<=7){
+    const a=find(`${pref}${n+1}`), b=find(`${pref}${n+2}`);
+    if(a&&b) opts.push({combo:[a,b],kind:'right'});
+  }
+  return opts;
+}
+
+function countIds(arr){
+  const m={};
+  arr.forEach(t=>m[t.id]=(m[t.id]||0)+1);
+  return m;
+}
+
+/* ---- 番數計算（完整台規 / 16張版） ---- */
+function mjCalcFan(hand,winTile,isTsumo,isDealer,melds,flowers,circleWind,seatWind){
+  // melds: [{type:'peng'|'gang'|'angang'|'chi'|'addgang', tiles:[...]}, ...]
+  let fan=0; const detail=[];
+  const all=[...hand,winTile];
+  const cnt=countIds(all);
+
+  // ---- 基本台 ----
+  fan+=1; detail.push('底 1台');
+  if(isTsumo){ fan+=1; detail.push('自摸 +1台'); }
+  if(isDealer){ fan+=1; detail.push('莊家 +1台'); }
+
+  // ---- 花台 ----
+  const flo=flowers||[];
+  // 春夏秋冬 = f1~f4；梅蘭竹菊 = f5~f8
+  // 我是東/南/西/北 對應 第1/2/3/4 朵 (春&梅 / 夏&蘭 / 秋&竹 / 冬&菊)
+  let flowerFan=flo.length;
+  if(flowerFan){ fan+=flowerFan; detail.push(`花牌 +${flowerFan}台`); }
+  // 對花：與座風相符的花
+  const myWindIdx=seatWind|0; // 0=東 1=南 2=西 3=北
+  const matchFlowers=flo.filter(f=>(f.num-1)%4===myWindIdx);
+  if(matchFlowers.length>=2){ fan+=1; detail.push('對花 +1台'); }
+  // 八仙過海
+  if(flo.length===8){ fan+=8; detail.push('八仙過海 +8台'); }
+
+  // ---- 役 ----
+  // 字一色
+  if(all.every(t=>t.suit==='jihai')){ fan+=16; detail.push('字一色 +16台'); }
+  // 清一色：全為一種數牌（無字牌）
+  const nonJ=all.filter(t=>t.suit!=='jihai');
+  const allSuits=new Set(nonJ.map(t=>t.suit));
+  if(allSuits.size===1 && nonJ.length===all.length){ fan+=8; detail.push('清一色 +8台'); }
+  // 混一色：一種數牌 + 字牌
+  else if(allSuits.size===1 && all.some(t=>t.suit==='jihai')){ fan+=4; detail.push('混一色 +4台'); }
+
+  // 風牌台：中、發、白 / 圈風 / 門風（每組刻子）
+  // 從 hand + melds 合計刻子
+  const allMelds=collectAllMelds(all, melds||[]);
+  const dragonIds=['z5','z6','z7']; // 中 發 白
+  allMelds.triplets.forEach(id=>{
+    if(dragonIds.includes(id)){ fan+=1; detail.push(`三元牌(${MJ_TILE_MAP[id]?.disp||id}) +1台`); }
+    // 圈風 (東=z1,南=z2,西=z3,北=z4)
+    if(id===`z${(circleWind|0)+1}`){ fan+=1; detail.push('圈風刻 +1台'); }
+    if(id===`z${(seatWind|0)+1}` && (seatWind|0)!==(circleWind|0)){ fan+=1; detail.push('門風刻 +1台'); }
+  });
+
+  // 碰碰胡：所有面子皆刻子（含槓）
+  const totalSets = allMelds.triplets.length + allMelds.runs.length;
+  if(totalSets>=5 && allMelds.runs.length===0){ fan+=4; detail.push('碰碰胡 +4台'); }
+  // 平胡：全順子，且雀頭非役牌
+  else if(allMelds.runs.length>=4 && allMelds.triplets.length===0){ fan+=2; detail.push('平胡 +2台'); }
+
+  // 三暗刻：手中無人碰過的刻子達 3 組（簡化：判定 hand 內出現3次以上的牌）
+  const handCnt=countIds(hand);
+  const concealedTriplets=Object.values(handCnt).filter(v=>v>=3).length;
+  if(concealedTriplets>=4){ fan+=8; detail.push('四暗刻 +8台'); }
+  else if(concealedTriplets>=3){ fan+=2; detail.push('三暗刻 +2台'); }
+
+  // 門清：完全沒有 peng/gang/chi 等公開面子
+  const concealed=(melds||[]).every(m=>m.type==='angang'); // 暗槓不破門清
+  if(concealed){ fan+=1; detail.push('門清 +1台'); }
+  if(concealed && isTsumo){ fan+=1; detail.push('門清自摸 +1台'); }
+
+  // 七對
+  if(Object.keys(cnt).length===7 && Object.values(cnt).every(v=>v===2)){ fan+=4; detail.push('七對 +4台'); }
+
+  // 槓子
+  (melds||[]).forEach(m=>{
+    if(m.type==='gang'||m.type==='addgang'){ fan+=1; detail.push('明槓 +1台'); }
+    else if(m.type==='angang'){ fan+=2; detail.push('暗槓 +2台'); }
+  });
+
+  return {fan:Math.max(1,fan), detail};
+}
+
+/* 從 hand+melds 收集所有刻子/順子的 id（簡化推估，用於台數估算） */
+function collectAllMelds(allTiles, melds){
+  const triplets=[]; const runs=[];
+  melds.forEach(m=>{
+    if(m.type==='peng'||m.type==='gang'||m.type==='angang'||m.type==='addgang'){
+      triplets.push(m.tiles[0].id);
+    } else if(m.type==='chi'){
+      runs.push(m.tiles.map(t=>t.id).sort().join(','));
+    }
+  });
+  // 從手牌 + 取出 melds 後 (此處 allTiles 已包含全部14張) 嘗試湊：簡化用 cnt
+  // 為簡單計算，直接掃 hand 中 >=3 同牌 → 暗刻
+  const handOnly=allTiles.slice();
+  const c=countIds(handOnly);
+  Object.entries(c).forEach(([id,v])=>{
+    if(v>=3 && !triplets.includes(id)) triplets.push(id);
+  });
+  return {triplets,runs};
+}
+
+/* 底注：一台=100元，每增加1台 +100，封頂限制 */
+function mjFanPay(fan){ return 100*fan; }
+
+/* ============ 麻將操作 ============ */
+
+/* 開始 */
+window.mjStart = async () => {
+  if(mjBusy) return;
+  const d=roomCache;
+  const uList=Object.entries(d.users||{}).filter(([,u])=>u&&u.online!==false);
+  if(uList.length<2){alert('至少2位玩家！');return;}
+  if(uList.length>4){alert('麻將最多4位玩家！');return;}
+  mjBusy=true;
+  const order=uList.map(([k])=>k);
+  // 莊家：延續上局或從0開始
+  const bIdx=(d.nextBankerIdx||0)%order.length;
+  const deck=buildMjDeck();
+  const hands={}; const flowers={};
+  // 台灣麻將：莊家17張、閒家16張
+  order.forEach((pid,i)=>{
+    const need = (i===bIdx)?17:16;
+    hands[pid]=deck.splice(0,need);
+    flowers[pid]=[];
+    drawWithFlowerReplace(hands[pid], flowers[pid], deck);
+  });
+  // 莊家最後抽到的牌標記為 drawn
+  hands[order[bIdx]] = hands[order[bIdx]]; // 不另外標
+  const money={};
+  order.forEach(pid=>{ money[pid]= d.money?.[pid] ?? 10000; });
+  const circleWind = d.circleWind||0;
+
+  await update(ref(db,`majong_room/${currentRoomId}`),{
+    gameState:'playing',playerOrder:order,hands,deck,flowers,
+    bankerIdx:bIdx,turnIndex:bIdx,
+    drawPhase:false,           // 莊家先打牌
+    lastDrawn:{},              // 紀錄每位玩家剛摸的牌 uid
+    discards:[],melds:{},money,
+    roundNum:(d.roundNum||0)+1,
+    circleWind, actionPending:null,
+    nextBankerIdx:bIdx, bankerChanged:false,
+    status:'playing', turnUpdatedAt:Date.now()
+  });
+  mjBusy=false;
+};
+
+/* 摸牌 */
+window.mjDraw = async () => {
+  if(mjBusy) return;
+  const d=roomCache;
+  if(!d||d.gameState!=='playing') return;
+  const order=d.playerOrder||[];
+  if(order[d.turnIndex]!==currentKey) return;
+  if(!d.drawPhase) return;
+  if(d.actionPending) return;
+  if(!d.deck||!d.deck.length){
+    // 流局
+    await update(ref(db,`majong_room/${currentRoomId}`),{gameState:'ended',endType:'ryukyoku',winnerName:'流局'});
+    return;
+  }
+  mjBusy=true;
+  const deck=[...d.deck];
+  const drawn=deck.shift();
+  const hand=[...(d.hands?.[currentKey]||[]),drawn];
+  const flowerArr=[...((d.flowers||{})[currentKey]||[])];
+  // 補花
+  drawWithFlowerReplace(hand, flowerArr, deck);
+  const upd={};
+  upd[`hands/${currentKey}`]=hand;
+  upd[`flowers/${currentKey}`]=flowerArr;
+  upd['deck']=deck;
+  upd['drawPhase']=false;
+  upd[`lastDrawn/${currentKey}`]= hand[hand.length-1]?.uid ?? null;
+  // 自摸 / 暗槓 / 加槓 判斷
+  const myMelds=d.melds?.[currentKey]||[];
+  const anGangs=mjCanAnGang(hand);
+  const addGangs=mjCanAddGang(hand,myMelds);
+  const acts={};
+  if(mjIsWinWithMelds(hand, myMelds.length)) acts.zimo=true;
+  if(anGangs.length) acts.angang=anGangs;
+  if(addGangs.length) acts.addgang=addGangs;
+  if(Object.keys(acts).length){
+    upd['actionPending']={type:'selfAct',player:currentKey,acts,createdAt:Date.now()};
+  }
+  await update(ref(db,`majong_room/${currentRoomId}`),upd);
+  mjBusy=false;
+};
+
+/* 打牌 */
+window.mjDiscard = async () => {
+  if(mjBusy||mjSel<0) return;
+  const d=roomCache;
+  if(!d||d.gameState!=='playing') return;
+  const order=d.playerOrder||[];
+  if(order[d.turnIndex]!==currentKey) return;
+  if(d.drawPhase){alert('請先摸牌！');return;}
+  if(d.actionPending) return;
+  mjBusy=true;
+  try {
+    const list = window.__mjPlayList || mjSortHand(d.hands?.[currentKey]||[]);
+    if(mjSel<0||mjSel>=list.length){return;}
+    const tile=list[mjSel];
+    const newHand=list.filter((_,i)=>i!==mjSel);
+    mjSel=-1;
+    const discards=[...(d.discards||[]),{...tile,by:currentKey}];
+    // 檢查其他玩家動作
+    const opts=[];
+    const nextIdx=mjNextActiveIndex(d,order.indexOf(currentKey));
+    const nextPid=order[nextIdx];
+    order.forEach(pid=>{
+      if(pid===currentKey) return;
+      if(!mjIsActivePlayer(d,pid)) return;
+      const ph=d.hands?.[pid]||[];
+      const types=[]; let chiOpts=[];
+      const phMelds=(d.melds?.[pid]||[]).length;
+      if(mjCanHu(ph,tile,phMelds)) types.push('hu');
+      if(mjCanGang(ph,tile)) types.push('gang');
+      if(mjCanPeng(ph,tile)) types.push('peng');
+      if(pid===nextPid){
+        chiOpts=mjCanChi(ph,tile);
+        if(chiOpts.length) types.push('chi');
+      }
+      if(types.length) opts.push({pid,types,chiOpts});
+    });
+    const upd={};
+    upd[`hands/${currentKey}`]=newHand;
+    upd[`lastDrawn/${currentKey}`]=null;
+    upd['discards']=discards;
+    if(opts.length){
+      upd['actionPending']={tile,from:currentKey,options:opts,afterTurn:d.turnIndex,createdAt:Date.now()};
+    } else {
+      upd['turnIndex']=nextIdx;
+      upd['drawPhase']=true;
+      upd['actionPending']=null;
+      upd['turnUpdatedAt']=Date.now();
+    }
+    await update(ref(db,`majong_room/${currentRoomId}`),upd);
+  } catch(err){
+    console.error('mjDiscard error:',err);
+  } finally {
+    mjBusy=false;
+  }
+};
+
+
+/* 吃（下家） */
+window.mjChi = async () => {
+  if(mjBusy) return;
+  const d=roomCache; const ap=d?.actionPending;
+  if(!ap?.tile) return;
+  const myOpt=(ap.options||[]).find(o=>o.pid===currentKey&&o.types.includes('chi'));
+  if(!myOpt||!myOpt.chiOpts?.length) return;
+  // 多種吃法：modal
+  const chosen = myOpt.chiOpts.length>1
+    ? await showChiPicker(myOpt.chiOpts, ap.tile)
+    : myOpt.chiOpts[0];
+  if(!chosen) return; // PASS
+  mjBusy=true;
+  try {
+    const tile=ap.tile;
+    const myHand=[...(d.hands?.[currentKey]||[])];
+    const removeIds=[chosen.combo[0].id, chosen.combo[1].id];
+    const newHand=[];
+    const used={};
+    myHand.forEach(t=>{
+      const i=removeIds.indexOf(t.id);
+      if(i>=0 && !used[i]){ used[i]=true; return; }
+      newHand.push(t);
+    });
+    const melds={...(d.melds||{})};
+    const myMeldList = Array.isArray(melds[currentKey]) ? [...melds[currentKey]] : [];
+    const cleanTile = JSON.parse(JSON.stringify(tile));
+    const trio=[JSON.parse(JSON.stringify(chosen.combo[0])),JSON.parse(JSON.stringify(chosen.combo[1])),cleanTile].sort(mjTileSort);
+    myMeldList.push({type:'chi',tiles:trio,fromTile:tile.id});
+    melds[currentKey]=myMeldList;
+    const myIdx=(d.playerOrder||[]).indexOf(currentKey);
+    await update(ref(db,`majong_room/${currentRoomId}`),{
+      [`hands/${currentKey}`]:newHand,
+      melds, turnIndex:myIdx, drawPhase:false, actionPending:null, turnUpdatedAt:Date.now()
+    });
+  } catch(err){ console.error('mjChi error:',err); }
+  finally { mjBusy=false; }
+};
+
+/* 吃牌選擇彈窗 */
+let chiPickerResolve=null;
+function showChiPicker(opts, tile){
+  return new Promise(resolve=>{
+    chiPickerResolve=resolve;
+    const box=document.getElementById('chi-opts');
+    box.innerHTML='';
+    opts.forEach((o,i)=>{
+      const b=document.createElement('button');
+      b.className='opt-btn';
+      b.innerHTML=`${i+1}. ${o.combo[0].disp} ${o.combo[1].disp} <span style="color:#facc15;">${tile.disp}</span>`;
+      b.onclick=()=>closeChiModal(false,o);
+      box.appendChild(b);
+    });
+    document.getElementById('chi-modal').classList.add('show');
+  });
+}
+window.closeChiModal = (isPass, picked)=>{
+  document.getElementById('chi-modal').classList.remove('show');
+  if(chiPickerResolve){
+    const r=chiPickerResolve; chiPickerResolve=null;
+    r(isPass? null : picked);
+  }
+};
+
+/* 暗槓 (手中4張同牌) */
+window.mjAnGang = async () => {
+  if(mjBusy) return;
+  const d=roomCache; const ap=d?.actionPending;
+  if(ap?.type!=='selfAct'||ap.player!==currentKey||!ap.acts?.angang?.length) return;
+  let targetId=ap.acts.angang[0];
+  if(ap.acts.angang.length>1){
+    const labels=ap.acts.angang.map((id,i)=>`${i+1}. ${MJ_TILE_MAP[id]?.disp||id}`).join('\n');
+    const pick=prompt('選擇暗槓:\n'+labels,'1');
+    const k=parseInt(pick||'1',10)-1;
+    if(k>=0&&k<ap.acts.angang.length) targetId=ap.acts.angang[k];
+  }
+  mjBusy=true;
+  const myHand=[...(d.hands?.[currentKey]||[])];
+  const tileObj=myHand.find(t=>t.id===targetId);
+  let removed=0;
+  const newHand=myHand.filter(t=>{ if(t.id===targetId&&removed<4){removed++;return false;} return true; });
+  const melds={...(d.melds||{})};
+  if(!melds[currentKey]) melds[currentKey]=[];
+  melds[currentKey].push({type:'angang',tiles:[tileObj,tileObj,tileObj,tileObj]});
+  // 槓後補牌
+  const deck=[...(d.deck||[])];
+  const flowerArr=[...((d.flowers||{})[currentKey]||[])];
+  if(!deck.length){ await update(ref(db,`majong_room/${currentRoomId}`),{gameState:'ended',endType:'ryukyoku',winnerName:'流局'}); mjBusy=false; return; }
+  const extra=deck.shift();
+  newHand.push(extra);
+  drawWithFlowerReplace(newHand,flowerArr,deck);
+  const upd={};
+  upd[`hands/${currentKey}`]=newHand;
+  upd[`flowers/${currentKey}`]=flowerArr;
+  upd['melds']=melds; upd['deck']=deck;
+  upd[`lastDrawn/${currentKey}`]= newHand[newHand.length-1]?.uid ?? null;
+  upd['actionPending']=null; upd['drawPhase']=false; upd['turnUpdatedAt']=Date.now();
+  if(mjIsWinWithMelds(newHand, (melds[currentKey]||[]).length)) upd['actionPending']={type:'selfAct',player:currentKey,acts:{zimo:true},createdAt:Date.now()};
+  await update(ref(db,`majong_room/${currentRoomId}`),upd);
+  mjBusy=false;
+};
+
+/* 加槓 (手中1張，已碰過) */
+window.mjAddGang = async () => {
+  if(mjBusy) return;
+  const d=roomCache; const ap=d?.actionPending;
+  if(ap?.type!=='selfAct'||ap.player!==currentKey||!ap.acts?.addgang?.length) return;
+  let targetId=ap.acts.addgang[0];
+  if(ap.acts.addgang.length>1){
+    const labels=ap.acts.addgang.map((id,i)=>`${i+1}. ${MJ_TILE_MAP[id]?.disp||id}`).join('\n');
+    const pick=prompt('選擇加槓:\n'+labels,'1');
+    const k=parseInt(pick||'1',10)-1;
+    if(k>=0&&k<ap.acts.addgang.length) targetId=ap.acts.addgang[k];
+  }
+  mjBusy=true;
+  const myHand=[...(d.hands?.[currentKey]||[])];
+  const tileObj=myHand.find(t=>t.id===targetId);
+  let removed=0;
+  const newHand=myHand.filter(t=>{ if(t.id===targetId&&removed<1){removed++;return false;} return true; });
+  const melds={...(d.melds||{})};
+  const arr=melds[currentKey]||[];
+  const mi=arr.findIndex(m=>m.type==='peng'&&m.tiles[0].id===targetId);
+  if(mi>=0){
+    arr[mi]={type:'addgang',tiles:[tileObj,tileObj,tileObj,tileObj]};
+  }
+  melds[currentKey]=arr;
+  const deck=[...(d.deck||[])];
+  const flowerArr=[...((d.flowers||{})[currentKey]||[])];
+  if(!deck.length){ await update(ref(db,`majong_room/${currentRoomId}`),{gameState:'ended',endType:'ryukyoku',winnerName:'流局'}); mjBusy=false; return; }
+  const extra=deck.shift();
+  newHand.push(extra);
+  drawWithFlowerReplace(newHand,flowerArr,deck);
+  const upd={};
+  upd[`hands/${currentKey}`]=newHand;
+  upd[`flowers/${currentKey}`]=flowerArr;
+  upd['melds']=melds; upd['deck']=deck;
+  upd[`lastDrawn/${currentKey}`]= newHand[newHand.length-1]?.uid ?? null;
+  upd['actionPending']=null; upd['drawPhase']=false; upd['turnUpdatedAt']=Date.now();
+  if(mjIsWinWithMelds(newHand, (melds[currentKey]||[]).length)) upd['actionPending']={type:'selfAct',player:currentKey,acts:{zimo:true},createdAt:Date.now()};
+  await update(ref(db,`majong_room/${currentRoomId}`),upd);
+  mjBusy=false;
+};
+
+/* 碰 */
+window.mjPeng = async () => {
+  if(mjBusy) return;
+  const d=roomCache; const ap=d?.actionPending;
+  if(!ap?.tile) return;
+  const myOpt=(ap.options||[]).find(o=>o.pid===currentKey&&o.types.includes('peng'));
+  if(!myOpt) return;
+  mjBusy=true;
+  try {
+    const tile=ap.tile;
+    const myHand=[...(d.hands?.[currentKey]||[])];
+    // 移除兩張同牌
+    let removed=0;
+    const newHand=myHand.filter(t=>{ if(t.id===tile.id&&removed<2){removed++;return false;} return true; });
+    const melds={...(d.melds||{})};
+    const myMeldList = Array.isArray(melds[currentKey]) ? [...melds[currentKey]] : [];
+    // 乾淨的 tile 物件（避免 Firebase 對 undefined 欄位報錯）
+    const cleanTile = JSON.parse(JSON.stringify(tile));
+    myMeldList.push({type:'peng',tiles:[cleanTile,cleanTile,cleanTile]});
+    melds[currentKey]=myMeldList;
+    const myIdx=(d.playerOrder||[]).indexOf(currentKey);
+    mjSel=-1;
+    const upd={};
+    upd[`hands/${currentKey}`]=newHand;
+    upd[`lastDrawn/${currentKey}`]=null;
+    upd['melds']=melds;
+    upd['turnIndex']=myIdx;
+    upd['drawPhase']=false;   // 碰完打牌
+    upd['actionPending']=null;
+    upd['turnUpdatedAt']=Date.now();
+    await update(ref(db,`majong_room/${currentRoomId}`),upd);
+
+  } catch(err) {
+    console.error('mjPeng error:', err);
+  } finally {
+    mjBusy=false;
+  }
+};
+
+/* 明槓 */
+window.mjGang = async () => {
+  if(mjBusy) return;
+  const d=roomCache; const ap=d?.actionPending;
+  if(!ap?.tile) return;
+  const myOpt=(ap.options||[]).find(o=>o.pid===currentKey&&o.types.includes('gang'));
+  if(!myOpt) return;
+  mjBusy=true;
+  const tile=ap.tile;
+  const myHand=[...(d.hands?.[currentKey]||[])];
+  let removed=0;
+  const newHand=myHand.filter(t=>{ if(t.id===tile.id&&removed<3){removed++;return false;} return true; });
+  const melds={...(d.melds||{})};
+  if(!melds[currentKey]) melds[currentKey]=[];
+  melds[currentKey].push({type:'gang',tiles:[tile,tile,tile,tile]});
+  // 槓後補一張
+  const deck=[...(d.deck||[])];
+  if(!deck.length){await update(ref(db,`majong_room/${currentRoomId}`),{gameState:'ended',endType:'ryukyoku',winnerName:'流局'});mjBusy=false;return;}
+  const extra=deck.shift();
+  newHand.push(extra);
+  const flowerArr=[...((d.flowers||{})[currentKey]||[])];
+  drawWithFlowerReplace(newHand,flowerArr,deck);
+  const myIdx=(d.playerOrder||[]).indexOf(currentKey);
+  const upd={};
+  upd[`hands/${currentKey}`]=newHand;
+  upd[`flowers/${currentKey}`]=flowerArr;
+  upd['melds']=melds;
+  upd['deck']=deck;
+  upd['turnIndex']=myIdx;
+  upd['drawPhase']=false;
+  upd['actionPending']=null;
+  upd['turnUpdatedAt']=Date.now();
+  if(mjIsWinWithMelds(newHand, (melds[currentKey]||[]).length)) upd['actionPending']={type:'zimoReady',player:currentKey,createdAt:Date.now()};
+  await update(ref(db,`majong_room/${currentRoomId}`),upd);
+  mjBusy=false;
+};
+
+/* 胡（放槍） */
+window.mjHu = async () => {
+  if(mjBusy) return;
+  const d=roomCache; const ap=d?.actionPending;
+  if(!ap?.tile) return;
+  const myOpt=(ap.options||[]).find(o=>o.pid===currentKey&&o.types.includes('hu'));
+  if(!myOpt) return;
+  mjBusy=true;
+  const tile=ap.tile; const fromId=ap.from;
+  const myHand=d.hands?.[currentKey]||[];
+  const order=d.playerOrder||[];
+  const money={...(d.money||{})};
+  const bIdx=d.bankerIdx||0;
+  const isDealer=order[bIdx]===currentKey;
+  const myFlowers=(d.flowers||{})[currentKey]||[];
+  const myIdx=order.indexOf(currentKey);
+  const fanRes=mjCalcFan(myHand,tile,false,isDealer,d.melds?.[currentKey]||[],myFlowers,d.circleWind||0,myIdx);
+  const fan=fanRes.fan; const fanDetail=fanRes.detail.join(' / ');
+  const pay=mjFanPay(fan);
+  // 放槍者付（莊家輸/贏，金額 x2）
+  const loserIsDealer=order[bIdx]===fromId;
+  const owed=(isDealer||loserIsDealer)?pay*2:pay;
+  money[currentKey]=(money[currentKey]||10000)+owed;
+  money[fromId]=(money[fromId]||10000)-owed;
+  // 下局莊家
+  let nextB=bIdx;
+  let bankerChanged=false;
+  if(!isDealer){ nextB=(bIdx+1)%order.length; bankerChanged=true; }
+  const detail=buildMoneyDetail(order,d.users,money);
+  await update(ref(db,`majong_room/${currentRoomId}`),{
+    gameState:'ended',endType:'hu',
+    winnerName:d.users?.[currentKey]?.name||myName,
+    winnerId:currentKey,winTile:tile,winFan:fan,winPay:pay,
+    loserName:d.users?.[fromId]?.name||'?',
+    money, nextBankerIdx:nextB, bankerChanged,
+    endDetail:detail, fanDetail
+  });
+  mjBusy=false;
+};
+
+/* 自摸 */
+window.mjZimo = async () => {
+  if(mjBusy) return;
+  const d=roomCache; const ap=d?.actionPending;
+  const zimoOK = (ap?.type==='zimoReady'&&ap.player===currentKey)
+              || (ap?.type==='selfAct'&&ap.player===currentKey&&ap.acts?.zimo);
+  if(!zimoOK) return;
+  mjBusy=true;
+  const myHand=d.hands?.[currentKey]||[];
+  const order=d.playerOrder||[];
+  const money={...(d.money||{})};
+  const bIdx=d.bankerIdx||0;
+  const isDealer=order[bIdx]===currentKey;
+  const winTile=myHand[myHand.length-1];
+  const baseHand=myHand.slice(0,-1);
+  const myFlowers=(d.flowers||{})[currentKey]||[];
+  const myIdx=order.indexOf(currentKey);
+  const fanRes=mjCalcFan(baseHand,winTile,true,isDealer,d.melds?.[currentKey]||[],myFlowers,d.circleWind||0,myIdx);
+  const fan=fanRes.fan; const fanDetail=fanRes.detail.join(' / ');
+  const pay=mjFanPay(fan);
+  // 自摸：每家付（含莊家加倍規則）
+  let totalGet=0;
+  order.forEach(pid=>{
+    if(pid===currentKey) return;
+    const pidIsDealer = order[bIdx]===pid;
+    const owed=(isDealer||pidIsDealer)?pay*2:pay;
+    money[pid]=(money[pid]||10000)-owed;
+    totalGet+=owed;
+  });
+  money[currentKey]=(money[currentKey]||10000)+totalGet;
+  let nextB=bIdx; let bankerChanged=false;
+  if(!isDealer){ nextB=order.indexOf(currentKey); bankerChanged=true; }
+  const detail=buildMoneyDetail(order,d.users,money);
+  await update(ref(db,`majong_room/${currentRoomId}`),{
+    gameState:'ended',endType:'zimo',
+    winnerName:d.users?.[currentKey]?.name||myName,
+    winnerId:currentKey,winTile,winFan:fan,winPay:pay,
+    money,nextBankerIdx:nextB,bankerChanged,
+    endDetail:detail, fanDetail
+  });
+  mjBusy=false;
+};
+
+/* PASS 動作 */
+window.mjPassAct = async () => {
+  if(mjBusy) return;
+  const d=roomCache; const ap=d?.actionPending;
+  if(!ap) return;
+  mjBusy=true;
+  const opts=(ap.options||[]).filter(o=>o.pid!==currentKey&&mjIsActivePlayer(d,o.pid));
+  await update(ref(db,`majong_room/${currentRoomId}`),mjResolvePendingAfterPass(d,opts));
+  mjBusy=false;
+};
+
+function buildMoneyDetail(order,users,money){
+  return order.map(pid=>`${users?.[pid]?.name||'?'}: $${(money[pid]||10000).toLocaleString()}`).join(' | ');
+}
+
+function mjIsActivePlayer(d,pid){
+  return !!pid && !!d.users?.[pid] && d.users[pid].online !== false;
+}
+function mjNextActiveIndex(d,startIdx){
+  const order=d.playerOrder||[];
+  if(!order.length) return 0;
+  for(let step=1; step<=order.length; step++){
+    const idx=(startIdx+step+order.length)%order.length;
+    if(mjIsActivePlayer(d,order[idx])) return idx;
+  }
+  return startIdx>=0 ? startIdx : 0;
+}
+function mjResolvePendingAfterPass(d, options){
+  const order=d.playerOrder||[];
+  const after=apIndexSafe(d.actionPending?.afterTurn,d.turnIndex||0);
+  if(options.length) return {'actionPending/options':options};
+  return {actionPending:null,turnIndex:mjNextActiveIndex(d,after),drawPhase:true,turnUpdatedAt:Date.now()};
+}
+function apIndexSafe(v,fallback){ return Number.isInteger(v) ? v : fallback; }
+
+let mjRecovering=false;
+function mjAutoRecoverDeadlock(d){
+  if(mjRecovering||!currentRoomId||currentType!=='mahjong'||!d||d.gameState!=='playing') return;
+  const order=d.playerOrder||[];
+  if(!order.length) return;
+  const now=Date.now();
+  const ap=d.actionPending;
+  const upd={};
+  if(ap?.options){
+    let opts=(ap.options||[]).filter(o=>mjIsActivePlayer(d,o.pid));
+    if(ap.createdAt && now-ap.createdAt>MJ_ACTION_TIMEOUT) opts=[];
+    if(opts.length !== (ap.options||[]).length){
+      Object.assign(upd,mjResolvePendingAfterPass(d,opts));
+    }
+  } else if(ap?.type==='selfAct' || ap?.type==='zimoReady'){
+    if(!mjIsActivePlayer(d,ap.player) || (ap.createdAt && now-ap.createdAt>MJ_ACTION_TIMEOUT)){
+      upd.actionPending=null;
+      upd.drawPhase=false;
+      upd.turnUpdatedAt=now;
+    }
+  }
+  const turnPid=order[d.turnIndex];
+  if(!ap && !mjIsActivePlayer(d,turnPid)){
+    upd.turnIndex=mjNextActiveIndex(d,d.turnIndex||0);
+    upd.drawPhase=true;
+    upd.turnUpdatedAt=now;
+  }
+  if(Object.keys(upd).length){
+    mjRecovering=true;
+    update(ref(db,`majong_room/${currentRoomId}`),upd).finally(()=>{mjRecovering=false;});
+  }
+}
+
+/* ---- 渲染麻將 ---- */
+const winds=['東','南','西','北'];
+function renderMJ(d){
+  mjAutoRecoverDeadlock(d);
+  const order=d.playerOrder||[];
+  const isMe=order[d.turnIndex]===currentKey;
+  const ap=d.actionPending;
+  const money=d.money||{};
+  const myMoney=money[currentKey]??10000;
+  const bIdx=d.bankerIdx||0;
+  const bankerName=d.users?.[order[bIdx]]?.name||'?';
+
+  // Header
+  document.getElementById('mj-banker').textContent=`🏦 莊: ${bankerName}`;
+  document.getElementById('mj-wind').textContent=`🌀 圈: ${winds[d.circleWind||0]}`;
+  document.getElementById('mj-wall').textContent=`🀄 牌山: ${(d.deck||[]).length}`;
+  document.getElementById('mj-money').textContent=`💰 ${myMoney.toLocaleString()}`;
+  const myIdx=order.indexOf(currentKey);
+  // 自己聽牌偵測
+  let selfTingHtml=`💺 座風: ${myIdx>=0?winds[myIdx%4]:'?'}`;
+  if(d.gameState==='playing' && currentKey){
+    const myHand=d.hands?.[currentKey]||[];
+    const myMeldsArr=d.melds?.[currentKey]||[];
+    if(myHand.length + myMeldsArr.length*3 === 16){
+      const tingIds=mjTenpaiTiles(myHand, myMeldsArr.length);
+      if(tingIds.length){
+        const tingTxt=tingIds.map(id=>MJ_TILE_MAP[id]?.disp||id).join('');
+        selfTingHtml += ` <span class="ting-badge self" title="聽：${tingTxt}">聽 ${tingTxt}</span>`;
+      }
+    }
+  }
+  document.getElementById('mj-dora').innerHTML=selfTingHtml;
+
+  // 狀態
+  const st=document.getElementById('mj-status');
+  if(d.gameState==='waiting'){
+    st.textContent=`等待玩家 (${Object.values(d.users||{}).filter(u=>u&&u.online!==false).length}人)，需2~4位`;
+  } else if(d.gameState==='playing'){
+    const turnName=d.users?.[order[d.turnIndex]]?.name||'?';
+    if(ap?.type==='zimoReady'&&ap.player===currentKey){
+      st.innerHTML='<span style="color:#facc15;font-weight:bold;animation:pulse 1.5s infinite;">🎉 自摸！請選擇！</span>';
+    } else if(ap?.options?.find(o=>o.pid===currentKey)){
+      st.innerHTML='<span style="color:#facc15;animation:pulse 1.5s infinite;">⚡ 你可以行動！</span>';
+    } else if(isMe){
+      st.innerHTML=d.drawPhase
+        ?'<span style="color:#4ade80;animation:pulse 1.5s infinite;">⭐ 請摸牌！</span>'
+        :'<span style="color:#4ade80;animation:pulse 1.5s infinite;">⭐ 請選一張牌打出！</span>';
+    } else {
+      st.textContent=`等待 ${turnName} ${d.drawPhase?'摸牌':'打牌'}...`;
+    }
+  } else {
+    const et=d.endType;
+    if(et==='ryukyoku'){
+      st.innerHTML='<span style="color:var(--muted);">🤝 流局，無人胡牌</span>';
+      showWin('🀄 麻將 — 流局','本局無人胡牌，金額不變。');
+    } else {
+      const fanTxt=d.winFan?`${d.winFan}番 / $${(d.winPay||0).toLocaleString()}`:'';
+      const typeTxt=et==='zimo'?'自摸':'胡牌（放槍）';
+      st.innerHTML=`<span style="color:#facc15;">🏆 ${d.winnerName} ${typeTxt}！${fanTxt}</span>`;
+      showWin(
+        `🀄 ${d.winnerName} ${typeTxt}！`,
+        `${fanTxt}\n${d.fanDetail?'台型：'+d.fanDetail+'\n':''}${d.endDetail||''}`
+      );
+    }
+  }
+
+  // 對手格
+  const og=document.getElementById('mj-opps');
+  og.innerHTML='';
+  order.forEach((pid,i)=>{
+    if(pid===currentKey) return;
+    const u=d.users?.[pid]; if(!u) return;
+    const phand=d.hands?.[pid]||[];
+    const hLen=phand.length;
+    const m=money[pid]??10000;
+    const meldList=d.melds?.[pid]||[];
+    const div=document.createElement('div');
+    div.className='mj-opp'+(i===d.turnIndex?' active':'');
+    const floList=(d.flowers||{})[pid]||[];
+    // 聽牌偵測：手牌長度應為 16-meldCount*3 (打出後狀態)
+    let tingHTML='';
+    if(d.gameState==='playing' && hLen + meldList.length*3 === 16){
+      const tingIds=mjTenpaiTiles(phand, meldList.length);
+      if(tingIds.length) tingHTML=`<span class="ting-badge" title="等：${tingIds.map(id=>MJ_TILE_MAP[id]?.disp||id).join('')}">聽</span>`;
+    }
+    div.innerHTML=`<div class="onm">${i===bIdx?'👑':''}${u.name}${tingHTML}</div>
+      <div class="otl">🀄 ${hLen}張 ${floList.length?'🌸'+floList.length:''}</div>
+      <div class="omn">💰${m.toLocaleString()}</div>`;
+    // 對手牌背
+    const backRow=document.createElement('div'); backRow.className='omd';
+    for(let k=0;k<Math.min(hLen,8);k++){
+      const b=document.createElement('div'); b.className='mjt-sm back'; b.textContent=TILE_BACK; backRow.appendChild(b);
+    }
+    if(hLen>8){
+      const more=document.createElement('span'); more.style.fontSize='.7em'; more.style.color='#94a3b8'; more.textContent=`+${hLen-8}`;
+      backRow.appendChild(more);
+    }
+    div.appendChild(backRow);
+    // 花牌
+    if(floList.length){
+      const fr=document.createElement('div'); fr.className='omd';
+      floList.forEach(t=>fr.appendChild(makeMjTileSm(t)));
+      div.appendChild(fr);
+    }
+    // 公開牌組（吃/碰/槓）— 與棄牌區同尺寸（mjt-sm）並分組
+    if(meldList.length){
+      const md=document.createElement('div');
+      md.className='omd';
+      meldList.forEach(meld=>{
+        const g=document.createElement('div');
+        g.className='meld-group';
+        meld.tiles.forEach(t=>g.appendChild(makeMjTileSm(t)));
+        md.appendChild(g);
+      });
+      div.appendChild(md);
+    }
+    og.appendChild(div);
+  });
+
+  // 棄牌
+  const da=document.getElementById('mj-discards');
+  da.innerHTML='';
+  (d.discards||[]).forEach(t=>{
+    const el=makeMjTileSm(t);
+    da.appendChild(el);
+  });
+
+  // 手牌 — 將剛摸到的牌（lastDrawn）單獨排在最右邊並與其他牌間距 15px
+  const hEl=document.getElementById('mj-hand');
+  hEl.innerHTML='';
+  if(d.hands?.[currentKey]){
+    const raw=d.hands[currentKey];
+    const drawnUid=(d.lastDrawn||{})[currentKey];
+    const drawnIdx = drawnUid!=null ? raw.findIndex(t=>t.uid===drawnUid) : -1;
+    const drawnTile = drawnIdx>=0 ? raw[drawnIdx] : null;
+    const rest = drawnTile ? raw.filter((_,i)=>i!==drawnIdx) : raw.slice();
+    const sorted=mjSortHand(rest);
+    const list = drawnTile ? [...sorted, drawnTile] : sorted;
+    const canAct=isMe&&d.gameState==='playing'&&!d.drawPhase&&!ap;
+    list.forEach((t,i)=>{
+      const el=makeMjTile(t);
+      if(drawnTile && i===list.length-1) el.classList.add('drawn');
+      if(i===mjSel) el.classList.add('sel');
+      if(!canAct) el.classList.add('off');
+      el.onclick=()=>{
+        if(!canAct) return;
+        mjSel=mjSel===i?-1:i;
+        // 把使用者點到的索引轉成"打牌時要打的那張"——存原始順序的對應 tile
+        window.__mjPlayList = list;
+        renderMJ(roomCache);
+      };
+      hEl.appendChild(el);
+    });
+    window.__mjPlayList = list;
+  }
+  // 自己的花牌區
+  const flEl=document.getElementById('mj-flowers');
+  flEl.innerHTML='';
+  ((d.flowers||{})[currentKey]||[]).forEach(t=>{
+    flEl.appendChild(makeMjTileSm(t));
+  });
+
+  // 公開牌組（自己的）
+  const myMelds=d.melds?.[currentKey]||[];
+  const meldRow=document.getElementById('mj-my-melds');
+  meldRow.innerHTML='';
+  if(myMelds.length){
+    myMelds.forEach(meld=>{
+      const g=document.createElement('div');
+      g.className='meld-group';
+      meld.tiles.forEach(t=>g.appendChild(makeMjTile(t)));
+      meldRow.appendChild(g);
+    });
+  }
+
+  // 按鈕
+  const bStart=document.getElementById('mj-btn-start');
+  const bDraw=document.getElementById('mj-btn-draw');
+  const bDiscard=document.getElementById('mj-btn-discard');
+  if(d.gameState==='waiting'){
+    bStart.classList.remove('hidden');
+    bDraw.classList.add('hidden');bDiscard.classList.add('hidden');
+    bStart.textContent='開始麻將';
+  } else if(d.gameState==='playing'){
+    bStart.classList.add('hidden');
+    bDraw.classList.remove('hidden');bDiscard.classList.remove('hidden');
+    bDraw.disabled=!isMe||!d.drawPhase||!!ap;
+    bDiscard.disabled=!isMe||d.drawPhase||!!ap||mjSel<0;
+  } else {
+    bStart.classList.remove('hidden');
+    bDraw.classList.add('hidden');bDiscard.classList.add('hidden');
+    bStart.textContent='繼續下一局';
+  }
+
+  // 動作浮層 — 吃 / 碰 / 槓 / 胡 / 自摸 / 暗槓 / 加槓
+  const actEl=document.getElementById('mj-actions');
+  actEl.innerHTML='';actEl.classList.add('hidden');
+  if(d.gameState==='playing'){
+    // 自身行動（自摸 / 暗槓 / 加槓）
+    if(ap?.type==='selfAct' && ap.player===currentKey){
+      actEl.classList.remove('hidden');
+      if(ap.acts?.zimo)    actEl.appendChild(makeActBtn('🀄 自摸！','#c0392b',mjZimo));
+      if(ap.acts?.angang?.length) actEl.appendChild(makeActBtn('暗槓','#7c3aed',mjAnGang));
+      if(ap.acts?.addgang?.length) actEl.appendChild(makeActBtn('加槓','#9333ea',mjAddGang));
+      actEl.appendChild(makeActBtn('略過','#64748b',()=>{
+        update(ref(db,`majong_room/${currentRoomId}`),{actionPending:null,turnUpdatedAt:Date.now()});
+      }));
+    } else if(ap?.type==='zimoReady'&&ap.player===currentKey){
+      actEl.classList.remove('hidden');
+      actEl.appendChild(makeActBtn('🀄 自摸！','#c0392b',mjZimo));
+      actEl.appendChild(makeActBtn('不要','#64748b',()=>{
+        update(ref(db,`majong_room/${currentRoomId}`),{actionPending:null,drawPhase:false,turnUpdatedAt:Date.now()});
+      }));
+    }
+    // 別人打牌時的吃/碰/槓/胡
+    if(ap?.options){
+      const mo=ap.options.find(o=>o.pid===currentKey);
+      if(mo){
+        actEl.classList.remove('hidden');
+        if(mo.types.includes('hu'))   actEl.appendChild(makeActBtn('胡牌！','#e74c3c',mjHu));
+        if(mo.types.includes('gang')) actEl.appendChild(makeActBtn('槓','#8e44ad',mjGang));
+        if(mo.types.includes('peng')) actEl.appendChild(makeActBtn('碰','#e67e22',mjPeng));
+        if(mo.types.includes('chi'))  actEl.appendChild(makeActBtn('吃','#0ea5e9',mjChi));
+        actEl.appendChild(makeActBtn('PASS','#64748b',mjPassAct));
+      }
+    }
+  }
+}
+
+function makeActBtn(label,color,fn){
+  const b=document.createElement('button');
+  b.className='gbtn'; b.style.background=color; b.textContent=label;
+  b.onclick=fn; return b;
+}
+
+function makeMjTile(t){
+  const el=document.createElement('div');
+  el.className=`mjt ${t.suit||''}`;
+  el.textContent=t.disp||'?';
+  el.title=t.name||t.id||'';
+  return el;
+}
+function makeMjTileSm(t){
+  const el=document.createElement('div');
+  el.className=`mjt-sm ${t.suit||''}`;
+  el.textContent=t.disp||'?';
+  el.title=t.name||t.id||'';
+  return el;
+}
+
+/* ============================================================
+   勝利畫面
+============================================================ */
+let lastWinKey='';
+function showWin(title,detail){
+  const key=title+detail;
+  if(key===lastWinKey) return;
+  lastWinKey=key;
+  document.getElementById('win-title').textContent=title;
+  document.getElementById('win-detail').textContent=detail||'';
+  document.getElementById('win-overlay').style.display='flex';
+}
+
+window.doRestart = () => {
+  document.getElementById('win-overlay').style.display='none';
+  lastWinKey='';
+  b2Sel=[];mjSel=-1;
+  if(currentType==='big2') b2Start();
+  else                       mjStart();
+};
+
+/* ============================================================
+   聊天
+============================================================ */
+function renderChat(chat){
+  if(!chat) return;
+  const el=document.getElementById('chat-msgs');
+  el.innerHTML='';
+  Object.values(chat).sort((a,b)=>(a.time||0)-(b.time||0)).forEach(m=>{
+    if(!m?.text) return;
+    const d=document.createElement('div');
+    d.innerHTML=`<b>${m.user||'?'}:</b> ${m.text}`;
+    el.appendChild(d);
+  });
+  el.scrollTop=el.scrollHeight;
+}
+
+window.sendMsg = () => {
+  const inp=document.getElementById('chatInput');
+  if(!inp.value.trim()||!currentRoomId) return;
+  push(ref(db,`${DB[currentType]}/${currentRoomId}/chat`),{
+    user:myName,text:inp.value.trim(),time:Date.now()
+  });
+  inp.value='';
+};
+
+window.editName = () => {
+  const n=prompt('請輸入新暱稱:',myName);
+  if(!n?.trim()) return;
+  myName=n.trim();
+  localStorage.setItem('playerName',myName);
+  document.getElementById('myName').textContent=myName;
+  if(currentRoomId&&currentKey)
+    update(ref(db,`${DB[currentType]}/${currentRoomId}/users/${currentKey}`),{name:myName});
+};
+
+/* ============================================================
+   通用輔助
+============================================================ */
+window.showSec = id => {
+  document.querySelectorAll('.container').forEach(c=>c.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+};
+</script>
+</body>
+</html>
