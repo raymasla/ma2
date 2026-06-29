@@ -35,6 +35,11 @@ body{
 @keyframes pulse{0%,100%{opacity:.6}50%{opacity:1;text-shadow:0 0 10px #facc15}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes recentDiscardGlow{
+  0%,100%{box-shadow:0 0 6px 1px rgba(74,222,128,.45);border-color:#4ade80;}
+  50%{box-shadow:0 0 16px 4px rgba(74,222,128,.85);border-color:#86efac;}
+}
+.recent-discard{border:2px solid #4ade80 !important;animation:recentDiscardGlow 1.2s ease-in-out infinite;border-radius:6px;}
 
 /* ===== 容器 ===== */
 .container{
@@ -670,7 +675,7 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
     <div class="mj-header">
       <span class="mj-chip" id="mj-banker">🏦 莊: -</span>
       <span class="mj-chip" id="mj-wind">🌀目前: 東</span>
-      <span class="mj-chip" id="mj-wall">🀄抽牌: -</span>
+      <span class="mj-chip" id="mj-wall">🀄 抽牌: -</span>
       <span class="mj-chip" id="mj-money">💰 -</span>
       <span class="mj-chip" id="mj-dora">🌟 臺風: -</span>
     </div>
@@ -1520,17 +1525,17 @@ function mjTenpaiTiles(hand, meldsCount){
 const MJ_RANK_EMOJI=['🥇','🥈','🥉','🎖️'];
 
 function mjCheckBankruptcy(money, order){
-  return (order||[]).some(pid=>(money[pid]??10000)<0);
+  return (order||[]).some(pid=>(money[pid]??3000)<0);
 }
 
 function mjMoneyRankingText(d, moneyOverride){
   const money=moneyOverride||d.money||{};
   const order=d.playerOrder||[];
   return [...order]
-    .sort((a,b)=>(money[b]??10000)-(money[a]??10000))
+    .sort((a,b)=>(money[b]??3000)-(money[a]??3000))
     .map((pid,i)=>{
       const em=MJ_RANK_EMOJI[Math.min(i,MJ_RANK_EMOJI.length-1)];
-      return `${em} 第${i+1}名 ${d.users?.[pid]?.name||'?'}  $${(money[pid]??10000).toLocaleString()}`;
+      return `${em} 第${i+1}名 ${d.users?.[pid]?.name||'?'}  $${(money[pid]??3000).toLocaleString()}`;
     }).join('\n');
 }
 
@@ -1726,7 +1731,7 @@ window.mjStart = async () => {
   // 莊家最後抽到的牌標記為 drawn
   hands[order[bIdx]] = hands[order[bIdx]]; // 不另外標
   const money={};
-  order.forEach(pid=>{ money[pid]= d.money?.[pid] ?? 10000; });
+  order.forEach(pid=>{ money[pid]= d.money?.[pid] ?? 3000; });
   const circleWind = d.circleWind||0;
 
   await update(ref(db,`majong_room/${currentRoomId}`),{
@@ -1829,11 +1834,13 @@ window.mjDiscard = async () => {
     upd['discards']=discards;
     if(opts.length){
       upd['actionPending']={tile,from:currentKey,options:opts,afterTurn:d.turnIndex,createdAt:Date.now()};
+      upd['activeDiscard']=true;
     } else {
       upd['turnIndex']=nextIdx;
       upd['drawPhase']=true;
       upd['actionPending']=null;
       upd['turnUpdatedAt']=Date.now();
+      upd['activeDiscard']=true;
     }
     await update(ref(db,`majong_room/${currentRoomId}`),upd);
   } catch(err){
@@ -1859,6 +1866,16 @@ window.mjChi = async () => {
   mjBusy=true;
   try {
     const tile=ap.tile;
+    // 優先級檢查：若還有其他玩家可碰/槓/胡，先存入意願等待
+    const higher=(ap.options||[]).some(o=>o.pid!==currentKey && (o.types.includes('peng')||o.types.includes('gang')||o.types.includes('hu')));
+    if(higher){
+      await update(ref(db,`majong_room/${currentRoomId}`),{
+        'actionPending/chiIntent':currentKey,
+        'actionPending/chiCombo':JSON.parse(JSON.stringify(chosen))
+      });
+      mjBusy=false;
+      return;
+    }
     const myHand=[...(d.hands?.[currentKey]||[])];
     const removeIds=[chosen.combo[0].id, chosen.combo[1].id];
     const newHand=[];
@@ -1875,9 +1892,11 @@ window.mjChi = async () => {
     myMeldList.push({type:'chi',tiles:trio,fromTile:tile.id});
     melds[currentKey]=myMeldList;
     const myIdx=(d.playerOrder||[]).indexOf(currentKey);
+    const newDiscards=(d.discards||[]).slice(0,-1);
     await update(ref(db,`majong_room/${currentRoomId}`),{
       [`hands/${currentKey}`]:newHand,
-      melds, turnIndex:myIdx, drawPhase:false, actionPending:null, turnUpdatedAt:Date.now()
+      melds, turnIndex:myIdx, drawPhase:false, actionPending:null, turnUpdatedAt:Date.now(),
+      discards:newDiscards, activeDiscard:false
     });
   } catch(err){ console.error('mjChi error:',err); }
   finally { mjBusy=false; }
@@ -2026,6 +2045,8 @@ window.mjPeng = async () => {
     upd['drawPhase']=false;   // 碰完打牌
     upd['actionPending']=null;
     upd['turnUpdatedAt']=Date.now();
+    upd['discards']=(d.discards||[]).slice(0,-1);
+    upd['activeDiscard']=false;
     await update(ref(db,`majong_room/${currentRoomId}`),upd);
 
   } catch(err) {
@@ -2067,6 +2088,8 @@ window.mjGang = async () => {
   upd['drawPhase']=false;
   upd['actionPending']=null;
   upd['turnUpdatedAt']=Date.now();
+  upd['discards']=(d.discards||[]).slice(0,-1);
+  upd['activeDiscard']=false;
   if(mjIsWinWithMelds(newHand, (melds[currentKey]||[]).length)) upd['actionPending']={type:'zimoReady',player:currentKey,createdAt:Date.now()};
   else if(mjShouldRyukyoku(deck)) Object.assign(upd, mjRyukyokuPayload());
   await update(ref(db,`majong_room/${currentRoomId}`),upd);
@@ -2095,8 +2118,8 @@ window.mjHu = async () => {
   // 放槍者付（莊家輸/贏，金額 x2）
   const loserIsDealer=order[bIdx]===fromId;
   const owed=(isDealer||loserIsDealer)?pay*2:pay;
-  money[currentKey]=(money[currentKey]||10000)+owed;
-  money[fromId]=(money[fromId]||10000)-owed;
+  money[currentKey]=(money[currentKey]||3000)+owed;
+  money[fromId]=(money[fromId]||3000)-owed;
   let nextB=bIdx;
   let bankerChanged=false;
   if(!isDealer){ nextB=(bIdx+1)%order.length; bankerChanged=true; }
@@ -2149,10 +2172,10 @@ window.mjZimo = async () => {
     if(pid===currentKey) return;
     const pidIsDealer = order[bIdx]===pid;
     const owed=(isDealer||pidIsDealer)?pay*2:pay;
-    money[pid]=(money[pid]||10000)-owed;
+    money[pid]=(money[pid]||3000)-owed;
     totalGet+=owed;
   });
-  money[currentKey]=(money[currentKey]||10000)+totalGet;
+  money[currentKey]=(money[currentKey]||3000)+totalGet;
   let nextB=bIdx; let bankerChanged=false;
   if(!isDealer){ nextB=order.indexOf(currentKey); bankerChanged=true; }
   const ranking=mjMoneyRankingText({...d,money}, money);
@@ -2184,12 +2207,40 @@ window.mjPassAct = async () => {
   if(!ap) return;
   mjBusy=true;
   const opts=(ap.options||[]).filter(o=>o.pid!==currentKey&&mjIsActivePlayer(d,o.pid));
-  await update(ref(db,`majong_room/${currentRoomId}`),mjResolvePendingAfterPass(d,opts));
+  const stillHigher=opts.some(o=>o.types.includes('peng')||o.types.includes('gang')||o.types.includes('hu'));
+  // 若已無 peng/gang/hu，但有 chiIntent，則觸發吃牌結算
+  if(!stillHigher && ap.chiIntent && ap.chiCombo){
+    const chiPid=ap.chiIntent;
+    const chosen=ap.chiCombo;
+    const tile=ap.tile;
+    const myHand=[...(d.hands?.[chiPid]||[])];
+    const removeIds=[chosen.combo[0].id, chosen.combo[1].id];
+    const newHand=[]; const used={};
+    myHand.forEach(t=>{
+      const i=removeIds.indexOf(t.id);
+      if(i>=0 && !used[i]){ used[i]=true; return; }
+      newHand.push(t);
+    });
+    const melds={...(d.melds||{})};
+    const myMeldList = Array.isArray(melds[chiPid]) ? [...melds[chiPid]] : [];
+    const cleanTile = JSON.parse(JSON.stringify(tile));
+    const trio=[JSON.parse(JSON.stringify(chosen.combo[0])),JSON.parse(JSON.stringify(chosen.combo[1])),cleanTile].sort(mjTileSort);
+    myMeldList.push({type:'chi',tiles:trio,fromTile:tile.id});
+    melds[chiPid]=myMeldList;
+    const chiIdx=(d.playerOrder||[]).indexOf(chiPid);
+    await update(ref(db,`majong_room/${currentRoomId}`),{
+      [`hands/${chiPid}`]:newHand,
+      melds, turnIndex:chiIdx, drawPhase:false, actionPending:null, turnUpdatedAt:Date.now(),
+      discards:(d.discards||[]).slice(0,-1), activeDiscard:false
+    });
+  } else {
+    await update(ref(db,`majong_room/${currentRoomId}`),mjResolvePendingAfterPass(d,opts));
+  }
   mjBusy=false;
 };
 
 function buildMoneyDetail(order,users,money){
-  return order.map(pid=>`${users?.[pid]?.name||'?'}: $${(money[pid]||10000).toLocaleString()}`).join(' | ');
+  return order.map(pid=>`${users?.[pid]?.name||'?'}: $${(money[pid]||3000).toLocaleString()}`).join(' | ');
 }
 
 function mjIsActivePlayer(d,pid){
@@ -2258,7 +2309,7 @@ function renderMJ(d){
   const isMe=order[d.turnIndex]===currentKey;
   const ap=d.actionPending;
   const money=d.money||{};
-  const myMoney=money[currentKey]??10000;
+  const myMoney=money[currentKey]??3000;
   const bIdx=d.bankerIdx||0;
   const bankerName=d.users?.[order[bIdx]]?.name||'?';
 
@@ -2266,9 +2317,10 @@ function renderMJ(d){
   document.getElementById('mj-banker').textContent=`🏦 莊: ${bankerName}`;
   document.getElementById('mj-wind').textContent=`🌀目前: ${winds[d.circleWind||0]}`;
   const wallCnt=(d.deck||[]).length;
-  document.getElementById('mj-wall').textContent=wallCnt<=MJ_DEAD_WALL
-    ? `🀄 牌山: ${wallCnt}（最後八疊）`
-    : `🀄 牌山: ${wallCnt}`;
+  const drawableCnt = Math.max(0, wallCnt - MJ_DEAD_WALL);
+  document.getElementById('mj-wall').textContent=drawableCnt<=0
+    ? `🀄 抽牌: ${drawableCnt}（最後八疊）`
+    : `🀄 抽牌: ${drawableCnt}`;
   document.getElementById('mj-money').textContent=`💰 ${myMoney.toLocaleString()}`;
   const myIdx=order.indexOf(currentKey);
   // 自己聽牌偵測
@@ -2296,6 +2348,8 @@ function renderMJ(d){
       st.innerHTML='<span style="color:#facc15;font-weight:bold;animation:pulse 1.5s infinite;">🎉 自摸！請選擇！</span>';
     } else if(ap?.options?.find(o=>o.pid===currentKey)){
       st.innerHTML='<span style="color:#facc15;animation:pulse 1.5s infinite;">⚡ 你可以行動！</span>';
+    } else if(ap?.chiIntent===currentKey){
+      st.innerHTML='<span style="color:#94a3b8;animation:pulse 1.5s infinite;">⏳ 等待其他玩家確認...</span>';
     } else if(isMe){
       st.innerHTML=d.drawPhase
         ?'<span style="color:#4ade80;animation:pulse 1.5s infinite;">⭐ 請摸牌！</span>'
@@ -2330,7 +2384,7 @@ function renderMJ(d){
     const u=d.users?.[pid]; if(!u) return;
     const phand=d.hands?.[pid]||[];
     const hLen=phand.length;
-    const m=money[pid]??10000;
+    const m=money[pid]??3000;
     const meldList=d.melds?.[pid]||[];
     const isTing=d.gameState==='playing' && hLen + meldList.length*3 === 16
       && mjTenpaiTiles(phand, meldList.length).length > 0;
@@ -2351,8 +2405,11 @@ function renderMJ(d){
   // 棄牌
   const da=document.getElementById('mj-discards');
   da.innerHTML='';
-  (d.discards||[]).forEach(t=>{
+  (d.discards||[]).forEach((t,index,arr)=>{
     const el=makeMjTileSm(t);
+    if(index===arr.length-1 && d.activeDiscard!==false){
+      el.classList.add('recent-discard');
+    }
     da.appendChild(el);
   });
 
