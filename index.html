@@ -41,6 +41,26 @@ body{
 }
 .recent-discard{border:2px solid #4ade80 !important;animation:recentDiscardGlow 1.2s ease-in-out infinite;border-radius:6px;}
 
+/* ===== 滿版狀態輔助 ===== */
+.container.full-width-container {
+  max-width: 100% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-radius: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  transition: all 0.3s ease;
+}
+.full-width-wrapper {
+  border-left: none !important;
+  border-right: none !important;
+  border-radius: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
 /* ===== 容器 ===== */
 .container{
   background:var(--card-bg);
@@ -51,6 +71,7 @@ body{
   width:100%;max-width:600px;text-align:center;
   margin-bottom:20px;position:relative;z-index:10;
   animation:fadeUp .5s ease-out;
+  transition: all 0.3s ease;
 }
 h1,h2,h3,h4{color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.5);}
 h1{margin-bottom:8px;}
@@ -78,6 +99,26 @@ h1{margin-bottom:8px;}
 .btn-r:hover{background:#dc2626;}
 .btn-y{background:var(--yellow);}
 .btn-y:hover{background:#d97706;}
+
+/* 淡淡的無光效切換按鈕 */
+.subtle-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  font-weight: normal;
+  white-space: nowrap;
+}
+.subtle-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.6);
+}
 
 /* ===== 房間列表 ===== */
 .room-item{
@@ -172,6 +213,7 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
   display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;
   scroll-behavior:smooth;
 }
+.b2-opps::before, .b2-opps::after { content: ''; margin: auto; } /* 置中且不截斷 */
 .b2-opps::-webkit-scrollbar{height:4px;}
 .b2-opps::-webkit-scrollbar-thumb{background:#6366f1;border-radius:2px;}
 .b2-opp{
@@ -201,6 +243,7 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
   -webkit-overflow-scrolling:touch;
   scrollbar-width:auto;
 }
+.b2-hand::before, .b2-hand::after { content: ''; margin: auto; }
 .b2-hand::-webkit-scrollbar{height:16px;}
 .b2-hand::-webkit-scrollbar-track{background:rgba(0,0,0,.35);border-radius:8px;margin:0 10px;}
 .b2-hand::-webkit-scrollbar-thumb{background:#6366f1;border-radius:8px;border:3px solid rgba(0,0,0,.25);}
@@ -237,14 +280,6 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
 .pc .mid{font-size:1.85em;display:flex;align-items:center;justify-content:center;line-height:1;}
 .pc.rd .tl,.pc.rd .mid{color:#dc2626;}
 .pc.bk .tl,.pc.bk .mid{color:#1a1a2e;}
-.pc-back{
-  width:64px;height:88px;border-radius:8px;flex-shrink:0;
-  background:repeating-linear-gradient(45deg,#7f1d1d,#7f1d1d 8px,#991b1b 8px,#991b1b 16px);
-  border:2px solid #e5e7eb;
-  box-shadow:2px 4px 8px rgba(0,0,0,.5);
-  display:flex;align-items:center;justify-content:center;
-  font-size:1.4em;color:rgba(255,255,255,.3);
-}
 
 /* ===================================================
    遊戲按鈕
@@ -273,6 +308,7 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
   padding:12px;color:#ecf0f1;position:relative;
   min-height:560px;display:flex;flex-direction:column;gap:7px;
   overflow:hidden;
+  transition: all 0.3s ease;
 }
 .mj-header{
   display:flex;justify-content:space-around;align-items:center;
@@ -289,6 +325,7 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
   padding-bottom:8px;-webkit-overflow-scrolling:touch;
   scrollbar-width:thin;
 }
+.mj-opps::before, .mj-opps::after { content: ''; margin: auto; } /* 置中且不截斷 */
 .mj-opps::-webkit-scrollbar{height:5px;}
 .mj-opps::-webkit-scrollbar-track{background:rgba(0,0,0,.25);border-radius:3px;margin:0 4px;}
 .mj-opps::-webkit-scrollbar-thumb{background:#16a34a;border-radius:3px;}
@@ -330,23 +367,48 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
 .discard-box{
   width:97%;background:rgba(0,0,0,.3);
   border:2px dashed rgba(255,255,255,.15);border-radius:12px;
-  padding:8px;display:flex;flex-wrap:wrap;gap:3px;
-  min-height:56px;align-items:center;justify-content:flex-start;
+  padding:8px;display:flex;gap:3px;
+  min-height:56px;align-items:center;
+  scrollbar-width:thin; scroll-behavior: smooth;
 }
-.discard-label{font-size:.75em;color:var(--muted);align-self:flex-start;margin-left:1.5%;}
+.discard-box.collapsed {
+  flex-wrap: nowrap; overflow-x: auto;
+}
+.discard-box.collapsed::before, .discard-box.collapsed::after { content: ''; margin: auto; }
+.discard-box.expanded {
+  flex-wrap: wrap; justify-content: center; overflow-x: hidden;
+}
+.discard-box::-webkit-scrollbar { height: 6px; }
+.discard-box::-webkit-scrollbar-track { background: transparent; }
+.discard-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+
+.discard-label{font-size:.75em;color:var(--muted);align-self:flex-start;}
 .mj-ctrl{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+
+/* 手牌工具列 */
+.hand-toolbar {
+  display:flex; justify-content:space-between; align-items:flex-end;
+  width:100%; padding: 0 10px; margin-top: 4px; min-height: 24px;
+}
+
 .mj-hand{
-  display:flex;align-items:flex-end;overflow-x:auto;
-  padding:clamp(28px,8vw,38px) clamp(8px,3vw,15px) clamp(14px,4vw,22px);
+  display:flex;align-items:flex-end;
+  padding:clamp(20px,6vw,28px) clamp(8px,3vw,15px) clamp(14px,4vw,22px);
   min-height:clamp(90px,26vw,118px);gap:0;
   -webkit-overflow-scrolling:touch;
   scrollbar-width:auto;
+}
+.mj-hand.collapsed {
+  flex-wrap: nowrap; overflow-x: auto;
+}
+.mj-hand.collapsed::before, .mj-hand.collapsed::after { content: ''; margin: auto; }
+.mj-hand.expanded {
+  flex-wrap: wrap; justify-content: center; row-gap: 12px; overflow-x: visible;
 }
 .mj-hand::-webkit-scrollbar{height:16px;}
 .mj-hand::-webkit-scrollbar-track{background:rgba(0,0,0,.35);border-radius:8px;margin:0 10px;}
 .mj-hand::-webkit-scrollbar-thumb{background:#16a34a;border-radius:8px;border:3px solid rgba(0,0,0,.25);}
 
-/* 麻將牌（採用原生 Unicode 字元，每張獨立不重疊，正面字元滿版） */
 .mjt{
   width:clamp(36px,9.5vw,50px);
   height:clamp(50px,13vw,68px);
@@ -371,24 +433,17 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
 .mjt:hover{transform:translateY(-16px) scale(1.1);z-index:50;}
 .mjt.sel{transform:translateY(-26px);border-color:#facc15;box-shadow:0 0 16px #facc15;z-index:49;}
 .mjt.off{filter:grayscale(.7) brightness(.5);pointer-events:none;}
-.mjt.back{
-  background:linear-gradient(145deg,#1f7a3a,#145c28);
-  border:1px solid #0d3f1a;
-  font-size:0;color:transparent;
-}
 .mjt.man{color:#b91c1c;}
 .mjt.pin{color:#1d4ed8;}
 .mjt.sou{color:#15803d;}
 .mjt.jihai{color:#6d28d9;}
 .mjt.flower{color:#db2777;background:linear-gradient(145deg,#fef3c7,#fde68a);}
-/* 花牌展示區 */
 .mj-flowers{
   display:flex;gap:3px;flex-wrap:wrap;justify-content:center;
   padding:4px;margin-top:4px;min-height:34px;
   background:rgba(0,0,0,.2);border-radius:6px;border:1px dashed rgba(255,255,255,.15);
 }
 .mj-flowers:empty::before{content:'(無花牌)';color:rgba(255,255,255,.25);font-size:.7em;}
-/* 小棄牌 */
 .mjt-sm{
   width:clamp(22px,5.8vw,30px);
   height:clamp(30px,7.8vw,40px);
@@ -403,25 +458,16 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
   box-shadow:1px 2px 4px rgba(0,0,0,.4);cursor:default;
   color:#1a1a2e;flex-shrink:0;line-height:1;overflow:hidden;padding:0;
 }
-.mjt-sm.back{
-  background:linear-gradient(145deg,#1f7a3a,#145c28);
-  border:1px solid #0d3f1a;
-  font-size:0;color:transparent;
-}
 .mjt-sm.man{color:#b91c1c;}
 .mjt-sm.pin{color:#1d4ed8;}
 .mjt-sm.sou{color:#15803d;}
 .mjt-sm.jihai{color:#6d28d9;}
 .mjt-sm.flower{color:#db2777;}
 
-
-/* 動作按鈕浮層 */
 .act-overlay{
   position:absolute;bottom:168px;left:50%;transform:translateX(-50%);
   display:flex;gap:8px;z-index:100;flex-wrap:wrap;justify-content:center;
 }
-
-/* 公開牌組 */
 .meld-area{
   display:flex;flex-wrap:wrap;gap:2px;justify-content:center;
   margin-top:2px;
@@ -440,15 +486,9 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
   animation:pulse 1.6s infinite;
 }
 .ting-badge.self{font-size:.78em;padding:2px 8px;}
-.mj-ting-hint{
-  text-align:center;font-size:.7em;color:#fbbf24;
-  padding:3px 6px 5px;letter-spacing:.3px;
-  animation:pulse 1.5s ease-in-out infinite;
-  text-shadow:0 0 8px rgba(251,191,36,.55);
-}
 #mj-my-ting{
   display:flex;align-items:flex-end;justify-content:center;flex-wrap:wrap;
-  gap:4px 6px;padding:6px 10px 8px;margin:2px 0 0;
+  gap:4px 6px;padding:6px 10px 8px;margin:0;
   min-height:0;max-height:78px;overflow:hidden;
   animation:pulse 1.5s ease-in-out infinite;
 }
@@ -471,7 +511,7 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
   font-family:inherit;
 }
 .mjt.angang-hidden{font-size:.75em;}
-/* 吃牌選擇彈窗（置頂、無全螢幕遮罩，手牌仍可見） */
+
 #chi-modal{
   position:absolute;top:0;left:0;right:0;z-index:1500;
   display:none;justify-content:center;align-items:flex-start;
@@ -601,7 +641,6 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
   .gbtn{padding:9px 16px;font-size:.9em;}
   .mj-ctrl{gap:5px;}
 }
-/* ===== 中等手機（361~480px） ===== */
 @media (min-width:361px) and (max-width:480px){
   .container{padding:16px;}
   #mj-wrapper{padding:10px;}
@@ -610,7 +649,6 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
 </head>
 <body>
 
-<!-- ============ 大廳 ============ -->
 <div id="mainMenu" class="container">
   <h1 style="background:linear-gradient(to right,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;">🎮 遊戲大廳</h1>
   <div class="stats-bar">
@@ -619,11 +657,10 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
   </div>
   <div id="allRooms" style="min-height:50px;">搜尋中...</div>
   <hr style="border:0;border-top:1px solid rgba(255,255,255,.12);margin:18px 0;">
-  <button class="menu-btn" style="background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #e74c3c;" onclick="showCreate('big2')">🃏 創立 台灣大老二</button>
-  <button class="menu-btn" style="background:linear-gradient(135deg,#1a3a1a,#0c200c);border:2px solid #27ae60;" onclick="showCreate('mahjong')">🀄 創立 台灣麻將</button>
+  <button class="menu-btn" style="background:linear-gradient(135deg,#1a1a2e,#16213e);border:2px solid #e74c3c;" onclick="showCreate('big2')">🃏 創立 大老二</button>
+  <button class="menu-btn" style="background:linear-gradient(135deg,#1a3a1a,#0c200c);border:2px solid #27ae60;" onclick="showCreate('mahjong')">🀄 創立 麻將</button>
 </div>
 
-<!-- ============ 建立房間 ============ -->
 <div id="createSection" class="container hidden">
   <h3 id="createTitle">創立房間</h3>
   <div class="input-row"><label>房間名稱:</label><input id="roomName" type="text" placeholder="輸入房間名稱"></div>
@@ -632,7 +669,6 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
   <button class="btn-sm" style="background:transparent;border:1px solid #64748b;color:#cbd5e1;margin-top:8px;" onclick="showSec('mainMenu')">← 返回大廳</button>
 </div>
 
-<!-- ============ 遊戲區 ============ -->
 <div id="gameArea" class="container hidden">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
     <h3 id="roomTitle" style="margin:0;font-size:1em;"></h3>
@@ -640,7 +676,6 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
   </div>
   <div id="gStatus" style="font-size:.95em;color:#f87171;min-height:22px;margin-bottom:6px;"></div>
 
-  <!-- 大老二 -->
   <div id="b2-wrapper" class="hidden">
     <div class="b2-header">
       <span id="b2-hdr-left" style="font-weight:bold;">等待玩家...</span>
@@ -656,15 +691,13 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
     </div>
     <div class="b2-ctrl" id="b2-ctrl">
       <button id="b2-btn-start" class="gbtn gbtn-start hidden" onclick="b2Start()">開始遊戲</button>
-      <button id="b2-btn-play"  class="gbtn gbtn-play  hidden" onclick="b2Play()">出牌</button>
       <button id="b2-btn-pass"  class="gbtn gbtn-pass  hidden" onclick="b2Pass()">PASS</button>
+      <button id="b2-btn-play"  class="gbtn gbtn-play  hidden" onclick="b2Play()">出牌</button>
     </div>
     <div class="b2-hand" id="b2-hand"></div>
   </div>
 
-  <!-- 麻將 -->
-  <div id="mj-wrapper" class="hidden" style="position:relative;">
-    <!-- 吃牌選擇（多種吃法時顯示於牌桌上方，不遮擋手牌） -->
+  <div id="mj-wrapper" class="hidden">
     <div id="chi-modal">
       <div class="box">
         <h4>選擇吃牌組合</h4>
@@ -682,25 +715,31 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
     <div class="mj-opps" id="mj-opps"></div>
     <div class="mj-center">
       <div class="mj-status" id="mj-status">等待玩家加入...</div>
-      <div class="discard-label">棄牌</div>
-      <div class="discard-box" id="mj-discards"></div>
+      
+      <div style="width:97%; display:flex; justify-content:space-between; align-items:center; margin: 4px 0 2px;">
+        <div class="discard-label" style="margin:0;">棄牌</div>
+        <button id="discard-toggle-btn" class="subtle-btn" onclick="toggleDiscard()">展開</button>
+      </div>
+      <div class="discard-box collapsed" id="mj-discards"></div>
     </div>
     <div class="mj-ctrl" id="mj-ctrl">
       <button id="mj-btn-start"   class="gbtn gbtn-start  hidden" onclick="mjStart()">開始麻將</button>
       <button id="mj-btn-draw"    class="gbtn gbtn-purple hidden" onclick="mjDraw()">摸牌</button>
       <button id="mj-btn-discard" class="gbtn gbtn-play   hidden" onclick="mjDiscard()">打牌</button>
     </div>
-    <!-- 吃/碰/槓/胡 動作面板（預載於上方，動態啟用） -->
     <div class="act-overlay hidden" id="mj-actions"></div>
-    <!-- 自己的花牌展示區 -->
     <div style="margin:6px 0 0;font-size:.78em;color:var(--muted);text-align:left;padding-left:6px;">🌸 我的花牌</div>
     <div class="mj-flowers" id="mj-flowers"></div>
     <div class="meld-area my-melds" id="mj-my-melds"></div>
-    <div id="mj-my-ting" class="hidden"></div>
-    <div class="mj-hand" id="mj-hand"></div>
+    
+    <div class="hand-toolbar">
+      <button id="hand-toggle-btn" class="subtle-btn" onclick="toggleHand()">捲起</button>
+      <div id="mj-my-ting" class="hidden"></div>
+      <div style="width: 48px;"></div> </div>
+    
+    <div class="mj-hand expanded" id="mj-hand"></div>
   </div>
 
-  <!-- 聊天 -->
   <div id="chat-area">
     <div style="margin-bottom:7px;font-size:.88em;color:var(--muted);">
       我是: <span id="myName" class="name-edit" onclick="editName()">玩家</span> ✎
@@ -713,7 +752,6 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
   </div>
 </div>
 
-<!-- ============ 勝利畫面 ============ -->
 <div id="win-overlay">
   <div class="win-panel">
     <div id="win-title">🎉 遊戲結束</div>
@@ -725,7 +763,6 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
   </div>
 </div>
 
-<!-- ============ 暱稱 Modal ============ -->
 <div id="nameModal" class="modal-bg hidden">
   <div class="modal-box">
     <h3 id="modalTitle">👇 輸入暱稱進入房間</h3>
@@ -761,7 +798,7 @@ const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
 
 /* ============================================================
-   全域狀態
+   全域狀態 & 顯示切換
 ============================================================ */
 let myName        = localStorage.getItem('playerName') || null;
 let currentRoomId = null;
@@ -780,10 +817,40 @@ let b2Busy = false;
 let mjSel  = -1;            // 麻將選牌 index
 let mjBusy = false;
 
+/* 顯示切換狀態 */
+let handExpanded = true;
+let discardExpanded = false;
+
+window.toggleHand = () => {
+  handExpanded = !handExpanded;
+  document.getElementById('hand-toggle-btn').textContent = handExpanded ? '捲起' : '展開';
+  const hEl = document.getElementById('mj-hand');
+  if (handExpanded) {
+    hEl.classList.add('expanded');
+    hEl.classList.remove('collapsed');
+  } else {
+    hEl.classList.add('collapsed');
+    hEl.classList.remove('expanded');
+  }
+};
+
+window.toggleDiscard = () => {
+  discardExpanded = !discardExpanded;
+  document.getElementById('discard-toggle-btn').textContent = discardExpanded ? '捲起' : '展開';
+  const dEl = document.getElementById('mj-discards');
+  if (discardExpanded) {
+    dEl.classList.add('expanded');
+    dEl.classList.remove('collapsed');
+  } else {
+    dEl.classList.add('collapsed');
+    dEl.classList.remove('expanded');
+  }
+};
+
 const DB = { big2: 'big_2_room', mahjong: 'majong_room' };
 const ROOM_SEAT_PREFIX = 'lockedSeatKey';
 const MJ_ACTION_TIMEOUT = 45000;
-const MJ_DEAD_WALL = 16; // 最後八疊（16張）留牌，觸發荒局
+const MJ_DEAD_WALL = 16; 
 
 function mjShouldRyukyoku(deck){ return !deck || deck.length <= MJ_DEAD_WALL; }
 function mjRyukyokuPayload(extra={}){
@@ -1011,18 +1078,12 @@ window.leaveRoom = () => {
 };
 
 /* ============================================================
- ██████╗ ██╗ ██████╗      ██████╗
- ██╔══██╗██║██╔════╝     ╚════██╗
- ██████╔╝██║██║  ███╗     █████╔╝
- ██╔══██╗██║██║   ██║    ██╔═══╝
- ██████╔╝██║╚██████╔╝    ███████╗
- ╚═════╝ ╚═╝ ╚═════╝     ╚══════╝
    台灣大老二完整規則
 ============================================================ */
 
 /* 牌值定義 */
-const B2R  = ['3','4','5','6','7','8','9','10','J','Q','K','A','2']; // 3最小
-const B2S  = ['♣','♦','♥','♠'];                                     // ♣梅花最小, ♠黑桃最大
+const B2R  = ['3','4','5','6','7','8','9','10','J','Q','K','A','2']; 
+const B2S  = ['♣','♦','♥','♠'];                                     
 const b2rv = r => B2R.indexOf(r);
 const b2sv = s => B2S.indexOf(s);
 const b2cv = c => b2rv(c.rank)*4 + b2sv(c.suit);
@@ -1049,14 +1110,12 @@ function b2Combo(cards) {
     if(rk[0]===rk[1]) return {type:'pair',val:b2cv(s[1])};
     return null;
   }
-  // 已移除三條：n===3 不再是合法組合
   if(n===5) {
     const cnt={};
     rk.forEach(r=>cnt[r]=(cnt[r]||0)+1);
     const gr=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
     const sameSuit=cards.every(c=>c.suit===cards[0].suit);
     const seq=rv.every((v,i)=>i===0||v===rv[i-1]+1);
-    // 同花順 > 四條 > 葫蘆 > 同花 > 順子
     if(sameSuit&&seq) return {type:'sf',val:b2cv(s[4]),pow:6};
     if(gr[0][1]===4) {
       const fh=s.filter(c=>c.rank===gr[0][0]).sort((a,b)=>b2cv(b)-b2cv(a))[0];
@@ -1077,22 +1136,16 @@ function b2CanBeat(mine,top) {
   if(!top||!top.length) return true;
   const mc=b2Combo(mine), tc=b2Combo(top);
   if(!mc) return false;
-  // === 怪物壓牌邏輯（斬單/斬雙）===
-  // 鐵支(four) 或 同花順(sf) 可壓任意長度；同花順 > 鐵支
   const myBomb = (mc.type==='four'||mc.type==='sf');
   const topBomb= tc && (tc.type==='four'||tc.type==='sf');
   if(myBomb && (!tc || !topBomb || mine.length!==top.length)){
-    // 對手不是炸彈，或長度不同 → 直接壓
     if(!tc || !topBomb) return true;
-    // 同為炸彈但長度不同 → 不可能（兩者皆5張）
   }
   if(!tc) return false;
-  // 同為炸彈：比較 pow（sf=6 > four=5），再比 val
   if(myBomb && topBomb){
     if((mc.pow||0)!==(tc.pow||0)) return (mc.pow||0)>(tc.pow||0);
     return mc.val>tc.val;
   }
-  // 一般規則：長度必須相同
   if(mine.length!==top.length) return false;
   if(mine.length===5) {
     if((mc.pow||0)!==(tc.pow||0)) return (mc.pow||0)>(tc.pow||0);
@@ -1127,7 +1180,6 @@ function b2RankingText(d){
   return b2BuildRankings(d).map(r=>`${r.emoji} 第${r.rank}名 ${r.name}`).join('\n');
 }
 
-/* 開始遊戲 */
 window.b2Start = async () => {
   if(b2Busy) return;
   const d=roomCache;
@@ -1139,34 +1191,24 @@ window.b2Start = async () => {
   const order=uList.map(([k])=>k);
   const deck=b2Deck();
   const hands={};
-  // === 依人數發牌 ===
-  // 2人 → 每人26張
-  // 3人 → 每人17張（持有 ♣3 的玩家多1張 = 18張）
-  // 4人 → 每人13張
   const N=order.length;
   if(N===2){
     order.forEach(pid=>{ hands[pid]=deck.splice(0,26); });
   } else if(N===3){
     order.forEach(pid=>{ hands[pid]=deck.splice(0,17); });
-    // 把牌堆剩下的最後一張 ♣3 補給該玩家
-    // 先找出誰拿到 ♣3，再從牌堆中再發1張給他
     let c3Holder=order.find(pid=>hands[pid].some(c=>c.rank==='3'&&c.suit==='♣'));
     if(!c3Holder){
-      // ♣3 還留在牌堆裡，找一張未發牌
       const remIdx=deck.findIndex(c=>c.rank==='3'&&c.suit==='♣');
-      // 隨機指定一位玩家持有
       c3Holder=order[0];
       if(remIdx>=0){
         hands[c3Holder].push(deck.splice(remIdx,1)[0]);
       }
     } else if(deck.length){
-      // 已持有 ♣3，再多發一張
       hands[c3Holder].push(deck.shift());
     }
   } else {
     order.forEach(pid=>{ hands[pid]=deck.splice(0,13); });
   }
-  // 找 ♣3（梅花3，最小花色）先手
   let si=0;
   for(let i=0;i<order.length;i++){
     if(hands[order[i]].some(c=>c.rank==='3'&&c.suit==='♣')){si=i;break;}
@@ -1180,7 +1222,6 @@ window.b2Start = async () => {
   b2Busy=false;
 };
 
-/* 出牌（b2Sel 索引對應畫面上排序後的手牌，與 renderB2 一致） */
 window.b2Play = async () => {
   if(b2Busy||!b2Sel.length) return;
   const d=roomCache;
@@ -1192,7 +1233,6 @@ window.b2Play = async () => {
   if(played.length!==b2Sel.length){ b2Sel=[]; return; }
   const combo=b2Combo(played);
   if(!combo){alert('無效的組合！\n可出：單張、對子、順子(5張)、同花(5張)、葫蘆(5張)、鐵支(5張)、同花順(5張)\n※ 鐵支與同花順為最大，可壓任何牌型');return;}
-  // 首輪必須包含 ♣3（梅花3，因花色順序改為 ♣<♦<♥<♠）
   if((!d.topCards||!d.topCards.length)&&myHand.some(c=>c.rank==='3'&&c.suit==='♣')&&!played.some(c=>c.rank==='3'&&c.suit==='♣')){
     alert('第一手必須包含 ♣3 (梅花3)！');return;
   }
@@ -1210,7 +1250,6 @@ window.b2Play = async () => {
   const fin=[...(d.finishedPlayers||[])];
   if(!newHand.length) fin.push(currentKey);
   upd['finishedPlayers']=fin;
-  // 勝利判斷
   const remaining=order.filter(p=>!fin.includes(p));
   if(remaining.length<=0||(remaining.length===1&&order.length>1)){
     upd['gameState']='ended';
@@ -1221,7 +1260,6 @@ window.b2Play = async () => {
     upd['winnerName']=winN;
     upd['winnerId']=finalRankings[0]||currentKey;
   } else {
-    // 找下一個未完成玩家
     let ni=(order.indexOf(currentKey)+1)%order.length;
     for(let t=0;t<order.length;t++){
       if(!fin.includes(order[ni])) break;
@@ -1233,7 +1271,6 @@ window.b2Play = async () => {
   b2Busy=false;
 };
 
-/* PASS */
 window.b2Pass = async () => {
   if(b2Busy) return;
   const d=roomCache;
@@ -1246,7 +1283,6 @@ window.b2Pass = async () => {
   const active=order.filter(p=>!fin.includes(p));
   const newPass=(d.passCount||0)+1;
   const upd={};
-  // 如果所有非出牌方都PASS，清桌
   if(newPass>=active.length-1){
     upd['topCards']=[];upd['topPlayerId']=null;upd['passCount']=0;
   } else {
@@ -1262,14 +1298,12 @@ window.b2Pass = async () => {
   b2Busy=false;
 };
 
-/* 渲染大老二 */
 function renderB2(d) {
   const order=d.playerOrder||[];
   const isMe=order[d.turnIndex]===currentKey;
   const fin=d.finishedPlayers||[];
   const top=d.topCards||[];
 
-  // Header
   const nameOf=pid=>d.users?.[pid]?.name||'?';
   if(d.gameState==='waiting'){
     document.getElementById('b2-hdr-left').textContent='等待玩家中...';
@@ -1287,7 +1321,6 @@ function renderB2(d) {
     }
   }
 
-  // 對手
   const oppEl=document.getElementById('b2-opps');
   oppEl.innerHTML='';
   order.forEach((pid,i)=>{
@@ -1304,7 +1337,6 @@ function renderB2(d) {
     oppEl.appendChild(div);
   });
 
-  // 桌面
   const pa=document.getElementById('b2-play-area');
   pa.innerHTML='';
   if(top.length){
@@ -1318,7 +1350,6 @@ function renderB2(d) {
     document.getElementById('b2-combo-lbl').textContent='';
   }
 
-  // 手牌（畫面與出牌皆使用同一排序結果，避免索引錯位）
   if(!isMe||d.gameState!=='playing') b2Sel=[];
   const handEl=document.getElementById('b2-hand');
   handEl.innerHTML='';
@@ -1342,7 +1373,6 @@ function renderB2(d) {
     b2Sel=[];
   }
 
-  // 按鈕
   const bStart=document.getElementById('b2-btn-start');
   const bPlay=document.getElementById('b2-btn-play');
   const bPass=document.getElementById('b2-btn-pass');
@@ -1368,32 +1398,14 @@ function makePCard(c) {
 }
 
 /* ============================================================
- ███╗   ███╗ █████╗ ██╗  ██╗     ██╗ ██████╗ ███╗   ██╗ ██████╗
- ████╗ ████║██╔══██╗██║  ██║     ██║██╔═══██╗████╗  ██║██╔════╝
- ██╔████╔██║███████║███████║     ██║██║   ██║██╔██╗ ██║██║  ███╗
- ██║╚██╔╝██║██╔══██║██╔══██║██   ██║██║   ██║██║╚██╗██║██║   ██║
- ██║ ╚═╝ ██║██║  ██║██║  ██║╚█████╔╝╚██████╔╝██║ ╚████║╚██████╔╝
- ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚════╝  ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝
   台灣麻將（16張手牌，台式規則）
 ============================================================ */
-
-/* ---- 牌組定義（採用完整 Unicode 麻將字元） ---- */
-// 萬: 🀇🀈🀉🀊🀋🀌🀍🀎🀏 (一~九萬)
-// 筒: 🀙🀚🀛🀜🀝🀞🀟🀠🀡 (一~九筒)
-// 索: 🀐🀑🀒🀓🀔🀕🀖🀗🀘 (一~九索)
-// 字: 🀀🀁🀂🀃 (東南西北) 🀄🀅🀆 (中發白)
-// 花: 🀢🀣🀤🀥 (春夏秋冬) 🀦🀧🀨🀩 (梅蘭竹菊)
-// 背: 🀫
 const MAN_GLYPH  = ['🀇','🀈','🀉','🀊','🀋','🀌','🀍','🀎','🀏'];
 const PIN_GLYPH  = ['🀙','🀚','🀛','🀜','🀝','🀞','🀟','🀠','🀡'];
 const SOU_GLYPH  = ['🀐','🀑','🀒','🀓','🀔','🀕','🀖','🀗','🀘'];
-const JIHAI_GLYPH= ['🀀','🀁','🀂','🀃','🀄','🀅','🀆'];     // 東南西北中發白
-const FLOWER_GLYPH=['🀢','🀣','🀤','🀥','🀦','🀧','🀨','🀩']; // 春夏秋冬梅蘭竹菊
+const JIHAI_GLYPH= ['🀀','🀁','🀂','🀃','🀄','🀅','🀆'];     
+const FLOWER_GLYPH=['🀢','🀣','🀤','🀥','🀦','🀧','🀨','🀩']; 
 const FLOWER_NAME=['春','夏','秋','冬','梅','蘭','竹','菊'];
-const TILE_BACK  = '🀫';
-
-const MAN_NUM  = ['一','二','三','四','五','六','七','八','九'];
-const JIHAI_D  = ['東','南','西','北','中','發','白'];
 
 function buildMjDeck() {
   const tiles=[];
@@ -1402,7 +1414,6 @@ function buildMjDeck() {
   PIN_GLYPH.forEach((g,i)=>{ for(let j=0;j<4;j++) tiles.push({uid:uid++,id:`p${i+1}`,suit:'pin',num:i+1,disp:g}); });
   SOU_GLYPH.forEach((g,i)=>{ for(let j=0;j<4;j++) tiles.push({uid:uid++,id:`s${i+1}`,suit:'sou',num:i+1,disp:g}); });
   JIHAI_GLYPH.forEach((g,i)=>{ for(let j=0;j<4;j++) tiles.push({uid:uid++,id:`z${i+1}`,suit:'jihai',num:i+1,disp:g}); });
-  // 春夏秋冬梅蘭竹菊：每張各一
   FLOWER_GLYPH.forEach((g,i)=>{ tiles.push({uid:uid++,id:`f${i+1}`,suit:'flower',num:i+1,disp:g,name:FLOWER_NAME[i]}); });
   return tiles.sort(()=>Math.random()-.5);
 }
@@ -1413,38 +1424,31 @@ function mjTileSort(a,b) {
 }
 function mjSortHand(h) { return [...h].sort(mjTileSort); }
 
-/* ---- 花牌：將手牌中的花牌全部抽出 ---- */
 function extractFlowers(hand){
   const flowers=hand.filter(t=>t.suit==='flower');
   const rest   =hand.filter(t=>t.suit!=='flower');
   return {flowers,rest};
 }
-/* 自動補花：直到手中沒有花牌；deck 從前抽，花牌移到 flowerArr，從牌堆末尾補張 */
+
 function drawWithFlowerReplace(hand, flowerArr, deck){
-  // 不停從 deck.shift 對應位置補張，遇花就丟入 flowerArr
   while(true){
     const flo=hand.filter(t=>t.suit==='flower');
     if(!flo.length) break;
     flo.forEach(t=>flowerArr.push(t));
-    // 從 hand 移除花牌
     for(let i=hand.length-1;i>=0;i--) if(hand[i].suit==='flower') hand.splice(i,1);
-    // 從牌山尾端補張（補花）
     for(let i=0;i<flo.length;i++){
-      if(!deck.length) return; // 流局風險
+      if(!deck.length) return; 
       hand.push(deck.pop());
     }
   }
 }
 
-/* ---- 胡牌判斷（台灣麻將 16張：5組+雀頭；亦相容14張） ---- */
 function mjIsWin(hand) {
   if(hand.length!==14 && hand.length!==17) return false;
   const cnt={};
   hand.forEach(t=>cnt[t.id]=(cnt[t.id]||0)+1);
-  // 七對
   const pairs=Object.values(cnt).filter(v=>v>=2).length;
   if(hand.length===14 && pairs===7 && Object.values(cnt).every(v=>v===2)) return true;
-  // 嘗試所有雀頭
   for(const id of Object.keys(cnt)){
     if(cnt[id]<2) continue;
     const rem={...cnt}; rem[id]-=2;
@@ -1457,18 +1461,15 @@ function mjIsWin(hand) {
 function mjCanMeld(cnt) {
   const keys=Object.keys(cnt).filter(k=>cnt[k]>0);
   if(!keys.length) return true;
-  // 找最小牌
   const allT=[];
   keys.forEach(id=>{ const t=MJ_TILE_MAP[id]; if(t) for(let i=0;i<cnt[id];i++) allT.push(t); });
   allT.sort(mjTileSort);
   const first=allT[0]; if(!first) return true;
   const id=first.id;
-  // 嘗試刻子
   if(cnt[id]>=3){
     const r={...cnt}; r[id]-=3; if(r[id]<=0) delete r[id];
     if(mjCanMeld(r)) return true;
   }
-  // 嘗試順子（非字牌）
   if(first.suit!=='jihai' && first.num<=7){
     const id2=`${first.suit[0]}${first.num+1}`;
     const id3=`${first.suit[0]}${first.num+2}`;
@@ -1481,7 +1482,6 @@ function mjCanMeld(cnt) {
   return false;
 }
 
-/* 建立 tile id -> tile 的 map */
 const MJ_TILE_MAP={};
 (()=>{
   MAN_GLYPH.forEach((g,i)=>MJ_TILE_MAP[`m${i+1}`]={id:`m${i+1}`,suit:'man',num:i+1,disp:g});
@@ -1491,14 +1491,12 @@ const MJ_TILE_MAP={};
   FLOWER_GLYPH.forEach((g,i)=>MJ_TILE_MAP[`f${i+1}`]={id:`f${i+1}`,suit:'flower',num:i+1,disp:g,name:FLOWER_NAME[i]});
 })();
 
-/* 判斷胡牌(考慮明面 melds)：需要 (5-meldsCount) 個面子 + 1 雀頭 */
 function mjIsWinWithMelds(hand, meldsCount){
   const needSets = 5 - (meldsCount|0);
   if(needSets < 0) return false;
   if(hand.length !== needSets*3 + 2) return false;
   const cnt={};
   hand.forEach(t=>cnt[t.id]=(cnt[t.id]||0)+1);
-  // 七對僅在無明面組合時 (一定要 14 張)
   if(meldsCount===0 && hand.length===14){
     const allPair = Object.values(cnt).length===7 && Object.values(cnt).every(v=>v===2);
     if(allPair) return true;
@@ -1511,7 +1509,7 @@ function mjIsWinWithMelds(hand, meldsCount){
   }
   return false;
 }
-/* 聽牌：回傳所有可胡的 tile id */
+
 function mjTenpaiTiles(hand, meldsCount){
   const res=[];
   const ids=Object.keys(MJ_TILE_MAP).filter(k=>!k.startsWith('f'));
@@ -1555,21 +1553,25 @@ function mjTingInfo(hand, meldsCount, d){
   const tingIds=mjTenpaiTiles(hand, meldsCount);
   if(!tingIds.length) return null;
   const tileTxt=tingIds.map(id=>MJ_TILE_MAP[id]?.disp||id).join('');
-  const X=tingIds.reduce((sum,id)=>sum+Math.max(0,4-mjCountTileVisible(id,d)),0);
+  
+  // 修正聽牌張數邏輯：扣除自己手上已經拿的張數
+  const X=tingIds.reduce((sum,id)=>{
+    const onTable = mjCountTileVisible(id, d);
+    const inHand = hand.filter(t => t.id === id).length;
+    return sum + Math.max(0, 4 - onTable - inHand);
+  }, 0);
+  
   return {tileTxt,X,tingIds};
 }
 
-/* ---- 吃 / 碰 / 槓 / 胡 / 自摸 判斷 ---- */
 const mjCanPeng  = (hand,t) => hand.filter(x=>x.id===t.id).length>=2;
 const mjCanGang  = (hand,t) => hand.filter(x=>x.id===t.id).length>=3;
 const mjCanHu    = (hand,t,meldsCount=0) => mjIsWinWithMelds([...hand,t], meldsCount);
 
-/* 暗槓：手中有 4 張同牌（摸進來時觸發），回傳所有可暗槓的 id */
 function mjCanAnGang(hand){
   const c=countIds(hand);
   return Object.entries(c).filter(([k,v])=>v>=4 && !k.startsWith('f')).map(([k])=>k);
 }
-/* 加槓：手中有 1 張同牌，且已有該牌的明刻（碰） */
 function mjCanAddGang(hand,melds){
   const ids=hand.map(t=>t.id);
   const r=[];
@@ -1578,23 +1580,19 @@ function mjCanAddGang(hand,melds){
   });
   return r;
 }
-/* 吃：只有上家可吃，且非字牌；回傳所有可能的吃法 [{combo:[a,b],type:'left/mid/right'}] */
 function mjCanChi(hand,t){
   if(!t||t.suit==='jihai'||t.suit==='flower') return [];
   const n=t.num, suit=t.suit, pref=suit[0];
   const find=id=>hand.find(x=>x.id===id);
   const opts=[];
-  // 左：t-2, t-1
   if(n>=3){
     const a=find(`${pref}${n-2}`), b=find(`${pref}${n-1}`);
     if(a&&b) opts.push({combo:[a,b],kind:'left'});
   }
-  // 中：t-1, t+1
   if(n>=2&&n<=8){
     const a=find(`${pref}${n-1}`), b=find(`${pref}${n+1}`);
     if(a&&b) opts.push({combo:[a,b],kind:'mid'});
   }
-  // 右：t+1, t+2
   if(n<=7){
     const a=find(`${pref}${n+1}`), b=find(`${pref}${n+2}`);
     if(a&&b) opts.push({combo:[a,b],kind:'right'});
@@ -1608,73 +1606,52 @@ function countIds(arr){
   return m;
 }
 
-/* ---- 番數計算（完整台規 / 16張版） ---- */
 function mjCalcFan(hand,winTile,isTsumo,isDealer,melds,flowers,circleWind,seatWind){
-  // melds: [{type:'peng'|'gang'|'angang'|'chi'|'addgang', tiles:[...]}, ...]
   let fan=0; const detail=[];
   const all=[...hand,winTile];
   const cnt=countIds(all);
 
-  // ---- 基本台 ----
   fan+=1; detail.push('底 1台');
   if(isTsumo){ fan+=1; detail.push('自摸 +1台'); }
   if(isDealer){ fan+=1; detail.push('莊家 +1台'); }
 
-  // ---- 花台 ----
   const flo=flowers||[];
-  // 春夏秋冬 = f1~f4；梅蘭竹菊 = f5~f8
-  // 我是東/南/西/北 對應 第1/2/3/4 朵 (春&梅 / 夏&蘭 / 秋&竹 / 冬&菊)
   let flowerFan=flo.length;
   if(flowerFan){ fan+=flowerFan; detail.push(`花牌 +${flowerFan}台`); }
-  // 對花：與座風相符的花
-  const myWindIdx=seatWind|0; // 0=東 1=南 2=西 3=北
+  const myWindIdx=seatWind|0; 
   const matchFlowers=flo.filter(f=>(f.num-1)%4===myWindIdx);
   if(matchFlowers.length>=2){ fan+=1; detail.push('對花 +1台'); }
-  // 八仙過海
   if(flo.length===8){ fan+=8; detail.push('八仙過海 +8台'); }
 
-  // ---- 役 ----
-  // 字一色
   if(all.every(t=>t.suit==='jihai')){ fan+=16; detail.push('字一色 +16台'); }
-  // 清一色：全為一種數牌（無字牌）
   const nonJ=all.filter(t=>t.suit!=='jihai');
   const allSuits=new Set(nonJ.map(t=>t.suit));
   if(allSuits.size===1 && nonJ.length===all.length){ fan+=8; detail.push('清一色 +8台'); }
-  // 混一色：一種數牌 + 字牌
   else if(allSuits.size===1 && all.some(t=>t.suit==='jihai')){ fan+=4; detail.push('混一色 +4台'); }
 
-  // 風牌台：中、發、白 / 圈風 / 門風（每組刻子）
-  // 從 hand + melds 合計刻子
   const allMelds=collectAllMelds(all, melds||[]);
-  const dragonIds=['z5','z6','z7']; // 中 發 白
+  const dragonIds=['z5','z6','z7']; 
   allMelds.triplets.forEach(id=>{
     if(dragonIds.includes(id)){ fan+=1; detail.push(`三元牌(${MJ_TILE_MAP[id]?.disp||id}) +1台`); }
-    // 圈風 (東=z1,南=z2,西=z3,北=z4)
     if(id===`z${(circleWind|0)+1}`){ fan+=1; detail.push('圈風刻 +1台'); }
     if(id===`z${(seatWind|0)+1}` && (seatWind|0)!==(circleWind|0)){ fan+=1; detail.push('門風刻 +1台'); }
   });
 
-  // 碰碰胡：所有面子皆刻子（含槓）
   const totalSets = allMelds.triplets.length + allMelds.runs.length;
   if(totalSets>=5 && allMelds.runs.length===0){ fan+=4; detail.push('碰碰胡 +4台'); }
-  // 平胡：全順子，且雀頭非役牌
   else if(allMelds.runs.length>=4 && allMelds.triplets.length===0){ fan+=2; detail.push('平胡 +2台'); }
 
-  // 三暗刻：手中無人碰過的刻子達 3 組（簡化：判定 hand 內出現3次以上的牌）
   const handCnt=countIds(hand);
   const concealedTriplets=Object.values(handCnt).filter(v=>v>=3).length;
   if(concealedTriplets>=4){ fan+=8; detail.push('四暗刻 +8台'); }
   else if(concealedTriplets>=3){ fan+=2; detail.push('三暗刻 +2台'); }
 
-  // 門清：完全沒有 peng/gang/chi 等公開面子
-  const concealed=(melds||[]).every(m=>m.type==='angang'); // 暗槓不破門清
+  const concealed=(melds||[]).every(m=>m.type==='angang'); 
   if(concealed){ fan+=1; detail.push('門清 +1台'); }
   if(concealed && isTsumo){ fan+=1; detail.push('門清自摸 +1台'); }
 
-  // 七對
   if(Object.keys(cnt).length===7 && Object.values(cnt).every(v=>v===2)){ fan+=4; detail.push('七對 +4台'); }
 
-  // 槓子
   (melds||[]).forEach(m=>{
     if(m.type==='gang'||m.type==='addgang'){ fan+=1; detail.push('明槓 +1台'); }
     else if(m.type==='angang'){ fan+=2; detail.push('暗槓 +2台'); }
@@ -1683,7 +1660,6 @@ function mjCalcFan(hand,winTile,isTsumo,isDealer,melds,flowers,circleWind,seatWi
   return {fan:Math.max(1,fan), detail};
 }
 
-/* 從 hand+melds 收集所有刻子/順子的 id（簡化推估，用於台數估算） */
 function collectAllMelds(allTiles, melds){
   const triplets=[]; const runs=[];
   melds.forEach(m=>{
@@ -1693,8 +1669,6 @@ function collectAllMelds(allTiles, melds){
       runs.push(m.tiles.map(t=>t.id).sort().join(','));
     }
   });
-  // 從手牌 + 取出 melds 後 (此處 allTiles 已包含全部14張) 嘗試湊：簡化用 cnt
-  // 為簡單計算，直接掃 hand 中 >=3 同牌 → 暗刻
   const handOnly=allTiles.slice();
   const c=countIds(handOnly);
   Object.entries(c).forEach(([id,v])=>{
@@ -1703,12 +1677,8 @@ function collectAllMelds(allTiles, melds){
   return {triplets,runs};
 }
 
-/* 底注：一台=100元，每增加1台 +100，封頂限制 */
 function mjFanPay(fan){ return 100*fan; }
 
-/* ============ 麻將操作 ============ */
-
-/* 開始 */
 window.mjStart = async () => {
   if(mjBusy) return;
   const d=roomCache;
@@ -1717,19 +1687,15 @@ window.mjStart = async () => {
   if(uList.length>4){alert('麻將最多4位玩家！');return;}
   mjBusy=true;
   const order=uList.map(([k])=>k);
-  // 莊家：延續上局或從0開始
   const bIdx=(d.nextBankerIdx||0)%order.length;
   const deck=buildMjDeck();
   const hands={}; const flowers={};
-  // 台灣麻將：莊家17張、閒家16張
   order.forEach((pid,i)=>{
     const need = (i===bIdx)?17:16;
     hands[pid]=deck.splice(0,need);
     flowers[pid]=[];
     drawWithFlowerReplace(hands[pid], flowers[pid], deck);
   });
-  // 莊家最後抽到的牌標記為 drawn
-  hands[order[bIdx]] = hands[order[bIdx]]; // 不另外標
   const money={};
   order.forEach(pid=>{ money[pid]= d.money?.[pid] ?? 3000; });
   const circleWind = d.circleWind||0;
@@ -1737,8 +1703,8 @@ window.mjStart = async () => {
   await update(ref(db,`majong_room/${currentRoomId}`),{
     gameState:'playing',playerOrder:order,hands,deck,flowers,
     bankerIdx:bIdx,turnIndex:bIdx,
-    drawPhase:false,           // 莊家先打牌
-    lastDrawn:{},              // 紀錄每位玩家剛摸的牌 uid
+    drawPhase:false,           
+    lastDrawn:{},              
     discards:[],melds:{},money,
     roundNum:(d.roundNum||0)+1,
     circleWind, actionPending:null,
@@ -1748,7 +1714,6 @@ window.mjStart = async () => {
   mjBusy=false;
 };
 
-/* 摸牌 */
 window.mjDraw = async () => {
   if(mjBusy) return;
   const d=roomCache;
@@ -1768,7 +1733,6 @@ window.mjDraw = async () => {
   const drawn=deck.shift();
   const hand=[...(d.hands?.[currentKey]||[]),drawn];
   const flowerArr=[...((d.flowers||{})[currentKey]||[])];
-  // 補花
   drawWithFlowerReplace(hand, flowerArr, deck);
   const upd={};
   upd[`hands/${currentKey}`]=hand;
@@ -1776,7 +1740,6 @@ window.mjDraw = async () => {
   upd['deck']=deck;
   upd['drawPhase']=false;
   upd[`lastDrawn/${currentKey}`]= hand[hand.length-1]?.uid ?? null;
-  // 自摸 / 暗槓 / 加槓 判斷
   const myMelds=d.melds?.[currentKey]||[];
   const anGangs=mjCanAnGang(hand);
   const addGangs=mjCanAddGang(hand,myMelds);
@@ -1792,7 +1755,6 @@ window.mjDraw = async () => {
   mjBusy=false;
 };
 
-/* 打牌 */
 window.mjDiscard = async () => {
   if(mjBusy||mjSel<0) return;
   const d=roomCache;
@@ -1809,7 +1771,6 @@ window.mjDiscard = async () => {
     const newHand=list.filter((_,i)=>i!==mjSel);
     mjSel=-1;
     const discards=[...(d.discards||[]),{...tile,by:currentKey}];
-    // 檢查其他玩家動作
     const opts=[];
     const nextIdx=mjNextActiveIndex(d,order.indexOf(currentKey));
     const nextPid=order[nextIdx];
@@ -1850,23 +1811,19 @@ window.mjDiscard = async () => {
   }
 };
 
-
-/* 吃（下家） */
 window.mjChi = async () => {
   if(mjBusy) return;
   const d=roomCache; const ap=d?.actionPending;
   if(!ap?.tile) return;
   const myOpt=(ap.options||[]).find(o=>o.pid===currentKey&&o.types.includes('chi'));
   if(!myOpt||!myOpt.chiOpts?.length) return;
-  // 多種吃法：modal
   const chosen = myOpt.chiOpts.length>1
     ? await showChiPicker(myOpt.chiOpts, ap.tile)
     : myOpt.chiOpts[0];
-  if(!chosen) return; // PASS
+  if(!chosen) return; 
   mjBusy=true;
   try {
     const tile=ap.tile;
-    // 優先級檢查：若還有其他玩家可碰/槓/胡，先存入意願等待
     const higher=(ap.options||[]).some(o=>o.pid!==currentKey && (o.types.includes('peng')||o.types.includes('gang')||o.types.includes('hu')));
     if(higher){
       await update(ref(db,`majong_room/${currentRoomId}`),{
@@ -1902,7 +1859,6 @@ window.mjChi = async () => {
   finally { mjBusy=false; }
 };
 
-/* 吃牌選擇彈窗 */
 let chiPickerResolve=null;
 function showChiPicker(opts, tile){
   return new Promise(resolve=>{
@@ -1934,7 +1890,6 @@ window.closeChiModal = (isPass, picked)=>{
   }
 };
 
-/* 暗槓 (手中4張同牌) */
 window.mjAnGang = async () => {
   if(mjBusy) return;
   const d=roomCache; const ap=d?.actionPending;
@@ -1954,7 +1909,6 @@ window.mjAnGang = async () => {
   const melds={...(d.melds||{})};
   if(!melds[currentKey]) melds[currentKey]=[];
   melds[currentKey].push({type:'angang',tiles:[tileObj,tileObj,tileObj,tileObj]});
-  // 槓後補牌
   const deck=[...(d.deck||[])];
   const flowerArr=[...((d.flowers||{})[currentKey]||[])];
   if(!deck.length || mjShouldRyukyoku(deck)){ await mjEndRyukyoku(); mjBusy=false; return; }
@@ -1973,7 +1927,6 @@ window.mjAnGang = async () => {
   mjBusy=false;
 };
 
-/* 加槓 (手中1張，已碰過) */
 window.mjAddGang = async () => {
   if(mjBusy) return;
   const d=roomCache; const ap=d?.actionPending;
@@ -2015,7 +1968,6 @@ window.mjAddGang = async () => {
   mjBusy=false;
 };
 
-/* 碰 */
 window.mjPeng = async () => {
   if(mjBusy) return;
   const d=roomCache; const ap=d?.actionPending;
@@ -2026,12 +1978,10 @@ window.mjPeng = async () => {
   try {
     const tile=ap.tile;
     const myHand=[...(d.hands?.[currentKey]||[])];
-    // 移除兩張同牌
     let removed=0;
     const newHand=myHand.filter(t=>{ if(t.id===tile.id&&removed<2){removed++;return false;} return true; });
     const melds={...(d.melds||{})};
     const myMeldList = Array.isArray(melds[currentKey]) ? [...melds[currentKey]] : [];
-    // 乾淨的 tile 物件（避免 Firebase 對 undefined 欄位報錯）
     const cleanTile = JSON.parse(JSON.stringify(tile));
     myMeldList.push({type:'peng',tiles:[cleanTile,cleanTile,cleanTile]});
     melds[currentKey]=myMeldList;
@@ -2042,13 +1992,12 @@ window.mjPeng = async () => {
     upd[`lastDrawn/${currentKey}`]=null;
     upd['melds']=melds;
     upd['turnIndex']=myIdx;
-    upd['drawPhase']=false;   // 碰完打牌
+    upd['drawPhase']=false;   
     upd['actionPending']=null;
     upd['turnUpdatedAt']=Date.now();
     upd['discards']=(d.discards||[]).slice(0,-1);
     upd['activeDiscard']=false;
     await update(ref(db,`majong_room/${currentRoomId}`),upd);
-
   } catch(err) {
     console.error('mjPeng error:', err);
   } finally {
@@ -2056,7 +2005,6 @@ window.mjPeng = async () => {
   }
 };
 
-/* 明槓 */
 window.mjGang = async () => {
   if(mjBusy) return;
   const d=roomCache; const ap=d?.actionPending;
@@ -2071,7 +2019,6 @@ window.mjGang = async () => {
   const melds={...(d.melds||{})};
   if(!melds[currentKey]) melds[currentKey]=[];
   melds[currentKey].push({type:'gang',tiles:[tile,tile,tile,tile]});
-  // 槓後補一張
   const deck=[...(d.deck||[])];
   if(!deck.length || mjShouldRyukyoku(deck)){ await mjEndRyukyoku(); mjBusy=false; return; }
   const extra=deck.shift();
@@ -2096,7 +2043,6 @@ window.mjGang = async () => {
   mjBusy=false;
 };
 
-/* 胡（放槍） */
 window.mjHu = async () => {
   if(mjBusy) return;
   const d=roomCache; const ap=d?.actionPending;
@@ -2115,7 +2061,6 @@ window.mjHu = async () => {
   const fanRes=mjCalcFan(myHand,tile,false,isDealer,d.melds?.[currentKey]||[],myFlowers,d.circleWind||0,myIdx);
   const fan=fanRes.fan; const fanDetail=fanRes.detail.join(' / ');
   const pay=mjFanPay(fan);
-  // 放槍者付（莊家輸/贏，金額 x2）
   const loserIsDealer=order[bIdx]===fromId;
   const owed=(isDealer||loserIsDealer)?pay*2:pay;
   money[currentKey]=(money[currentKey]||3000)+owed;
@@ -2146,7 +2091,6 @@ window.mjHu = async () => {
   mjBusy=false;
 };
 
-/* 自摸 */
 window.mjZimo = async () => {
   if(mjBusy) return;
   const d=roomCache; const ap=d?.actionPending;
@@ -2166,7 +2110,6 @@ window.mjZimo = async () => {
   const fanRes=mjCalcFan(baseHand,winTile,true,isDealer,d.melds?.[currentKey]||[],myFlowers,d.circleWind||0,myIdx);
   const fan=fanRes.fan; const fanDetail=fanRes.detail.join(' / ');
   const pay=mjFanPay(fan);
-  // 自摸：每家付（含莊家加倍規則）
   let totalGet=0;
   order.forEach(pid=>{
     if(pid===currentKey) return;
@@ -2200,7 +2143,6 @@ window.mjZimo = async () => {
   mjBusy=false;
 };
 
-/* PASS 動作 */
 window.mjPassAct = async () => {
   if(mjBusy) return;
   const d=roomCache; const ap=d?.actionPending;
@@ -2208,7 +2150,6 @@ window.mjPassAct = async () => {
   mjBusy=true;
   const opts=(ap.options||[]).filter(o=>o.pid!==currentKey&&mjIsActivePlayer(d,o.pid));
   const stillHigher=opts.some(o=>o.types.includes('peng')||o.types.includes('gang')||o.types.includes('hu'));
-  // 若已無 peng/gang/hu，但有 chiIntent，則觸發吃牌結算
   if(!stillHigher && ap.chiIntent && ap.chiCombo){
     const chiPid=ap.chiIntent;
     const chosen=ap.chiCombo;
@@ -2305,6 +2246,18 @@ function mjAutoRecoverDeadlock(d){
 const winds=['東','南','西','北'];
 function renderMJ(d){
   mjAutoRecoverDeadlock(d);
+  
+  // 滿版邏輯處理
+  const mjWrapper = document.getElementById('mj-wrapper');
+  const gameArea = document.getElementById('gameArea');
+  if(d.gameState === 'playing'){
+    mjWrapper.classList.add('full-width-wrapper');
+    gameArea.classList.add('full-width-container');
+  } else {
+    mjWrapper.classList.remove('full-width-wrapper');
+    gameArea.classList.remove('full-width-container');
+  }
+
   const order=d.playerOrder||[];
   const isMe=order[d.turnIndex]===currentKey;
   const ap=d.actionPending;
@@ -2313,7 +2266,6 @@ function renderMJ(d){
   const bIdx=d.bankerIdx||0;
   const bankerName=d.users?.[order[bIdx]]?.name||'?';
 
-  // Header
   document.getElementById('mj-banker').textContent=`🏦 莊: ${bankerName}`;
   document.getElementById('mj-wind').textContent=`🌀目前: ${winds[d.circleWind||0]}`;
   const wallCnt=(d.deck||[]).length;
@@ -2323,7 +2275,6 @@ function renderMJ(d){
     : `🀄 抽牌: ${drawableCnt}`;
   document.getElementById('mj-money').textContent=`💰 ${myMoney.toLocaleString()}`;
   const myIdx=order.indexOf(currentKey);
-  // 自己聽牌偵測
   let selfTingHtml=`💺自己: ${myIdx>=0?winds[myIdx%4]:'?'}`;
   if(d.gameState==='playing' && currentKey){
     const myHand=d.hands?.[currentKey]||[];
@@ -2338,7 +2289,6 @@ function renderMJ(d){
   }
   document.getElementById('mj-dora').innerHTML=selfTingHtml;
 
-  // 狀態
   const st=document.getElementById('mj-status');
   if(d.gameState==='waiting'){
     st.textContent=`等待玩家 (${Object.values(d.users||{}).filter(u=>u&&u.online!==false).length}人)，需2~4位`;
@@ -2376,7 +2326,6 @@ function renderMJ(d){
     }
   }
 
-  // 對手格
   const og=document.getElementById('mj-opps');
   og.innerHTML='';
   order.forEach((pid,i)=>{
@@ -2402,7 +2351,6 @@ function renderMJ(d){
     og.appendChild(div);
   });
 
-  // 棄牌
   const da=document.getElementById('mj-discards');
   da.innerHTML='';
   (d.discards||[]).forEach((t,index,arr)=>{
@@ -2412,8 +2360,15 @@ function renderMJ(d){
     }
     da.appendChild(el);
   });
+  
+  // 自動捲動棄牌區至最新出的牌
+  if (!discardExpanded) {
+    requestAnimationFrame(() => {
+      const daEl = document.getElementById('mj-discards');
+      if(daEl) daEl.scrollLeft = daEl.scrollWidth;
+    });
+  }
 
-  // 手牌 — 將剛摸到的牌（lastDrawn）單獨排在最右邊並與其他牌間距 15px
   const hEl=document.getElementById('mj-hand');
   hEl.innerHTML='';
   if(d.hands?.[currentKey]){
@@ -2433,7 +2388,6 @@ function renderMJ(d){
       el.onclick=()=>{
         if(!canAct) return;
         mjSel=mjSel===i?-1:i;
-        // 把使用者點到的索引轉成"打牌時要打的那張"——存原始順序的對應 tile
         window.__mjPlayList = list;
         renderMJ(roomCache);
       };
@@ -2441,14 +2395,13 @@ function renderMJ(d){
     });
     window.__mjPlayList = list;
   }
-  // 自己的花牌區
+  
   const flEl=document.getElementById('mj-flowers');
   flEl.innerHTML='';
   ((d.flowers||{})[currentKey]||[]).forEach(t=>{
     flEl.appendChild(makeMjTileSm(t));
   });
 
-  // 公開牌組（自己的）
   const myMelds=d.melds?.[currentKey]||[];
   const meldRow=document.getElementById('mj-my-melds');
   meldRow.innerHTML='';
@@ -2479,7 +2432,6 @@ function renderMJ(d){
     myTingEl.classList.add('hidden');
   }
 
-  // 按鈕
   const bStart=document.getElementById('mj-btn-start');
   const bDraw=document.getElementById('mj-btn-draw');
   const bDiscard=document.getElementById('mj-btn-discard');
@@ -2498,11 +2450,9 @@ function renderMJ(d){
     bStart.textContent='繼續下一局';
   }
 
-  // 動作浮層 — 吃 / 碰 / 槓 / 胡 / 自摸 / 暗槓 / 加槓
   const actEl=document.getElementById('mj-actions');
   actEl.innerHTML='';actEl.classList.add('hidden');
   if(d.gameState==='playing'){
-    // 自身行動（自摸 / 暗槓 / 加槓）
     if(ap?.type==='selfAct' && ap.player===currentKey){
       actEl.classList.remove('hidden');
       if(ap.acts?.zimo)    actEl.appendChild(makeActBtn('🀄 自摸！','#c0392b',mjZimo));
@@ -2518,7 +2468,6 @@ function renderMJ(d){
         update(ref(db,`majong_room/${currentRoomId}`),{actionPending:null,drawPhase:false,turnUpdatedAt:Date.now()});
       }));
     }
-    // 別人打牌時的吃/碰/槓/胡
     if(ap?.options){
       const mo=ap.options.find(o=>o.pid===currentKey);
       if(mo){
