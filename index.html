@@ -707,7 +707,7 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
     </div>
     <div class="mj-header">
       <span class="mj-chip" id="mj-banker">🏦 莊: -</span>
-      <span class="mj-chip" id="mj-wind">🌀目前:</span>
+      <span class="mj-chip" id="mj-wind">🌀目前: 東</span>
       <span class="mj-chip" id="mj-wall">🀄 抽牌: -</span>
       <span class="mj-chip" id="mj-money">💰 -</span>
       <span class="mj-chip" id="mj-dora">🌟 臺風: -</span>
@@ -1709,7 +1709,6 @@ window.mjStart = async () => {
     roundNum:(d.roundNum||0)+1,
     circleWind, actionPending:null,
     nextBankerIdx:bIdx, bankerChanged:false,
-    startBankerIdx: (d.startBankerIdx==null? bIdx : d.startBankerIdx),
     status:'playing', turnUpdatedAt:Date.now()
   });
   mjBusy=false;
@@ -1821,41 +1820,19 @@ window.mjChi = async () => {
   const chosen = myOpt.chiOpts.length>1
     ? await showChiPicker(myOpt.chiOpts, ap.tile)
     : myOpt.chiOpts[0];
-  if(!chosen) return; 
+  if(!chosen) return;
+  if((ap.responded||{})[currentKey]) return;
   mjBusy=true;
   try {
-    const tile=ap.tile;
-    const higher=(ap.options||[]).some(o=>o.pid!==currentKey && (o.types.includes('peng')||o.types.includes('gang')||o.types.includes('hu')));
-    if(higher){
+    if(!mjAllHuPlayersPassed(ap) || ap.pengIntent || ap.gangIntent){
       await update(ref(db,`majong_room/${currentRoomId}`),{
         'actionPending/chiIntent':currentKey,
-        'actionPending/chiCombo':JSON.parse(JSON.stringify(chosen))
+        'actionPending/chiCombo':JSON.parse(JSON.stringify(chosen)),
+        'actionPending/responded':{...(ap.responded||{}), [currentKey]:true}
       });
-      mjBusy=false;
       return;
     }
-    const myHand=[...(d.hands?.[currentKey]||[])];
-    const removeIds=[chosen.combo[0].id, chosen.combo[1].id];
-    const newHand=[];
-    const used={};
-    myHand.forEach(t=>{
-      const i=removeIds.indexOf(t.id);
-      if(i>=0 && !used[i]){ used[i]=true; return; }
-      newHand.push(t);
-    });
-    const melds={...(d.melds||{})};
-    const myMeldList = Array.isArray(melds[currentKey]) ? [...melds[currentKey]] : [];
-    const cleanTile = JSON.parse(JSON.stringify(tile));
-    const trio=[JSON.parse(JSON.stringify(chosen.combo[0])),JSON.parse(JSON.stringify(chosen.combo[1])),cleanTile].sort(mjTileSort);
-    myMeldList.push({type:'chi',tiles:trio,fromTile:tile.id});
-    melds[currentKey]=myMeldList;
-    const myIdx=(d.playerOrder||[]).indexOf(currentKey);
-    const newDiscards=(d.discards||[]).slice(0,-1);
-    await update(ref(db,`majong_room/${currentRoomId}`),{
-      [`hands/${currentKey}`]:newHand,
-      melds, turnIndex:myIdx, drawPhase:false, actionPending:null, turnUpdatedAt:Date.now(),
-      discards:newDiscards, activeDiscard:false
-    });
+    await update(ref(db,`majong_room/${currentRoomId}`), mjBuildChiSettlement(d, currentKey, chosen, ap));
   } catch(err){ console.error('mjChi error:',err); }
   finally { mjBusy=false; }
 };
@@ -1969,32 +1946,176 @@ window.mjAddGang = async () => {
   mjBusy=false;
 };
 
+function mjHuPlayerPassed(ap, pid){
+  const responded=ap.responded||{};
+  const huIntents=ap.huIntents||{};
+  return !!responded[pid] && !huIntents[pid];
+}
+function mjAllHuPlayersPassed(ap){
+  const huOpts=(ap.options||[]).filter(o=>o.types.includes('hu'));
+  if(!huOpts.length) return true;
+  return huOpts.every(o=>mjHuPlayerPassed(ap,o.pid));
+}
+function mjGetHighestPriorityHuPlayer(d, ap){
+  if(!ap?.tile||!ap.from) return null;
+  const order=d.playerOrder||[];
+  const fromIdx=order.indexOf(ap.from);
+  if(fromIdx<0) return null;
+  const candidates=(ap.options||[]).filter(o=>
+    o.types.includes('hu') && !mjHuPlayerPassed(ap,o.pid) && mjIsActivePlayer(d,o.pid)
+  );
+  if(!candidates.length) return null;
+  let best=null, bestDist=Infinity;
+  candidates.forEach(o=>{
+    const idx=order.indexOf(o.pid);
+    if(idx<0) return;
+    const dist=(idx-fromIdx+order.length)%order.length;
+    if(dist<bestDist){ bestDist=dist; best=o.pid; }
+  });
+  return best;
+}
+function mjBuildHuSettlement(d, winnerPid, ap){
+  const tile=ap.tile;
+  const fromId=ap.from;
+  const myHand=d.hands?.[winnerPid]||[];
+  const order=d.playerOrder||[];
+  const money={...(d.money||{})};
+  const bIdx=d.bankerIdx||0;
+  const isDealer=order[bIdx]===winnerPid;
+  const myFlowers=(d.flowers||{})[winnerPid]||[];
+  const myIdx=order.indexOf(winnerPid);
+  const fanRes=mjCalcFan(myHand,tile,false,isDealer,d.melds?.[winnerPid]||[],myFlowers,d.circleWind||0,myIdx);
+  const fan=fanRes.fan;
+  const fanDetail=fanRes.detail.join(' / ');
+  const pay=mjFanPay(fan);
+  const loserIsDealer=order[bIdx]===fromId;
+  const owed=(isDealer||loserIsDealer)?pay*2:pay;
+  money[winnerPid]=(money[winnerPid]||3000)+owed;
+  money[fromId]=(money[fromId]||3000)-owed;
+  let nextB=bIdx;
+  let bankerChanged=false;
+  if(!isDealer){ nextB=(bIdx+1)%order.length; bankerChanged=true; }
+  if(mjCheckBankruptcy(money, order)){
+    return {
+      gameState:'ended',endType:'bankrupt',
+      winnerName:d.users?.[winnerPid]?.name||'?',
+      winnerId:winnerPid,winTile:tile,winFan:fan,winPay:pay,
+      money,nextBankerIdx:nextB,bankerChanged,
+      endDetail:mjMoneyRankingText({...d,money}, money),
+      mjRanking:mjMoneyRankingText({...d,money}, money),
+      actionPending:null
+    };
+  }
+  return {
+    gameState:'ended',endType:'hu',
+    winnerName:d.users?.[winnerPid]?.name||'?',
+    winnerId:winnerPid,winTile:tile,winFan:fan,winPay:pay,
+    loserName:d.users?.[fromId]?.name||'?',
+    money,nextBankerIdx:nextB,bankerChanged,
+    endDetail:buildMoneyDetail(order,d.users,money),
+    fanDetail,
+    actionPending:null
+  };
+}
+function mjBuildChiSettlement(d, chiPid, chosen, ap){
+  const tile=ap.tile;
+  const myHand=[...(d.hands?.[chiPid]||[])];
+  const removeIds=[chosen.combo[0].id, chosen.combo[1].id];
+  const newHand=[]; const used={};
+  myHand.forEach(t=>{
+    const i=removeIds.indexOf(t.id);
+    if(i>=0 && !used[i]){ used[i]=true; return; }
+    newHand.push(t);
+  });
+  const melds={...(d.melds||{})};
+  const myMeldList=Array.isArray(melds[chiPid]) ? [...melds[chiPid]] : [];
+  const cleanTile=JSON.parse(JSON.stringify(tile));
+  const trio=[JSON.parse(JSON.stringify(chosen.combo[0])),JSON.parse(JSON.stringify(chosen.combo[1])),cleanTile].sort(mjTileSort);
+  myMeldList.push({type:'chi',tiles:trio,fromTile:tile.id});
+  melds[chiPid]=myMeldList;
+  const chiIdx=(d.playerOrder||[]).indexOf(chiPid);
+  return {
+    [`hands/${chiPid}`]:newHand,
+    melds, turnIndex:chiIdx, drawPhase:false, actionPending:null, turnUpdatedAt:Date.now(),
+    discards:(d.discards||[]).slice(0,-1), activeDiscard:false
+  };
+}
+function mjBuildPengSettlement(d, pengPid, ap){
+  const tile=ap.tile;
+  const myHand=[...(d.hands?.[pengPid]||[])];
+  let removed=0;
+  const newHand=myHand.filter(t=>{ if(t.id===tile.id&&removed<2){removed++;return false;} return true; });
+  const melds={...(d.melds||{})};
+  const myMeldList=Array.isArray(melds[pengPid]) ? [...melds[pengPid]] : [];
+  const cleanTile=JSON.parse(JSON.stringify(tile));
+  myMeldList.push({type:'peng',tiles:[cleanTile,cleanTile,cleanTile]});
+  melds[pengPid]=myMeldList;
+  const myIdx=(d.playerOrder||[]).indexOf(pengPid);
+  return {
+    [`hands/${pengPid}`]:newHand,
+    [`lastDrawn/${pengPid}`]:null,
+    melds, turnIndex:myIdx, drawPhase:false, actionPending:null,
+    turnUpdatedAt:Date.now(),
+    discards:(d.discards||[]).slice(0,-1), activeDiscard:false
+  };
+}
+function mjBuildGangSettlement(d, gangPid, ap){
+  const tile=ap.tile;
+  const myHand=[...(d.hands?.[gangPid]||[])];
+  let removed=0;
+  const newHand=myHand.filter(t=>{ if(t.id===tile.id&&removed<3){removed++;return false;} return true; });
+  const melds={...(d.melds||{})};
+  if(!melds[gangPid]) melds[gangPid]=[];
+  melds[gangPid].push({type:'gang',tiles:[tile,tile,tile,tile]});
+  const deck=[...(d.deck||[])];
+  if(!deck.length || mjShouldRyukyoku(deck)) return mjRyukyokuPayload();
+  const extra=deck.shift();
+  newHand.push(extra);
+  const flowerArr=[...((d.flowers||{})[gangPid]||[])];
+  drawWithFlowerReplace(newHand,flowerArr,deck);
+  const myIdx=(d.playerOrder||[]).indexOf(gangPid);
+  const upd={
+    [`hands/${gangPid}`]:newHand,
+    [`flowers/${gangPid}`]:flowerArr,
+    melds, deck, turnIndex:myIdx, drawPhase:false,
+    turnUpdatedAt:Date.now(),
+    discards:(d.discards||[]).slice(0,-1), activeDiscard:false
+  };
+  upd[`lastDrawn/${gangPid}`]= newHand[newHand.length-1]?.uid ?? null;
+  if(mjIsWinWithMelds(newHand, (melds[gangPid]||[]).length)) upd.actionPending={type:'zimoReady',player:gangPid,createdAt:Date.now()};
+  else if(mjShouldRyukyoku(deck)) Object.assign(upd, mjRyukyokuPayload());
+  else upd.actionPending=null;
+  return upd;
+}
+function mjTryResolveIntents(d, ap){
+  if(!ap?.tile) return null;
+  const highestHu=mjGetHighestPriorityHuPlayer(d, ap);
+  if(highestHu && (ap.huIntents||{})[highestHu]) return mjBuildHuSettlement(d, highestHu, ap);
+  if(!mjAllHuPlayersPassed(ap)) return null;
+  if(ap.pengIntent) return mjBuildPengSettlement(d, ap.pengIntent, ap);
+  if(ap.gangIntent) return mjBuildGangSettlement(d, ap.gangIntent, ap);
+  if(ap.chiIntent && ap.chiCombo) return mjBuildChiSettlement(d, ap.chiIntent, ap.chiCombo, ap);
+  return null;
+}
+
 window.mjPeng = async () => {
   if(mjBusy) return;
   const d=roomCache; const ap=d?.actionPending;
   if(!ap?.tile) return;
   const myOpt=(ap.options||[]).find(o=>o.pid===currentKey&&o.types.includes('peng'));
   if(!myOpt) return;
+  if((ap.responded||{})[currentKey]) return;
   mjBusy=true;
   try {
-    // 防搶快：若其他玩家有胡選項，先登記意圖等待
-    const othersHu=(ap.options||[]).some(o=>o.pid!==currentKey && o.types.includes('hu'));
-    if(othersHu){
-      const upd={};
-      upd['actionPending/pengIntent']=currentKey;
-      upd[`actionPending/responded/${currentKey}`]=true;
-      await update(ref(db,`majong_room/${currentRoomId}`),upd);
-      // 若已全部回應則觸發結算
-      const d2 = { ...d, actionPending: {
-        ...ap,
-        pengIntent: currentKey,
-        responded: { ...(ap.responded||{}), [currentKey]: true }
-      }};
-      const res=mjTryResolveIntents(d2);
-      if(res) await update(ref(db,`majong_room/${currentRoomId}`),res);
+    if(!mjAllHuPlayersPassed(ap)){
+      await update(ref(db,`majong_room/${currentRoomId}`),{
+        'actionPending/pengIntent':currentKey,
+        'actionPending/responded':{...(ap.responded||{}), [currentKey]:true}
+      });
       return;
     }
-    await update(ref(db,`majong_room/${currentRoomId}`), mjBuildPengUpdate(d, currentKey, ap.tile));
+    mjSel=-1;
+    await update(ref(db,`majong_room/${currentRoomId}`), mjBuildPengSettlement(d, currentKey, ap));
   } catch(err) {
     console.error('mjPeng error:', err);
   } finally {
@@ -2008,25 +2129,30 @@ window.mjGang = async () => {
   if(!ap?.tile) return;
   const myOpt=(ap.options||[]).find(o=>o.pid===currentKey&&o.types.includes('gang'));
   if(!myOpt) return;
+  if((ap.responded||{})[currentKey]) return;
   mjBusy=true;
   try {
-    const othersHu=(ap.options||[]).some(o=>o.pid!==currentKey && o.types.includes('hu'));
-    if(othersHu){
-      const upd={};
-      upd['actionPending/gangIntent']=currentKey;
-      upd[`actionPending/responded/${currentKey}`]=true;
-      await update(ref(db,`majong_room/${currentRoomId}`),upd);
-      const d2 = { ...d, actionPending: {
-        ...ap,
-        gangIntent: currentKey,
-        responded: { ...(ap.responded||{}), [currentKey]: true }
-      }};
-      const res=mjTryResolveIntents(d2);
-      if(res) await update(ref(db,`majong_room/${currentRoomId}`),res);
+    if(!mjAllHuPlayersPassed(ap)){
+      await update(ref(db,`majong_room/${currentRoomId}`),{
+        'actionPending/gangIntent':currentKey,
+        'actionPending/responded':{...(ap.responded||{}), [currentKey]:true}
+      });
       return;
     }
-    await update(ref(db,`majong_room/${currentRoomId}`), await mjBuildGangUpdate(d, currentKey, ap.tile));
-  } catch(err){
+    if(!ap.pengIntent){
+      const gangUpd=mjBuildGangSettlement(d, currentKey, ap);
+      if(gangUpd.gameState==='ended' && gangUpd.endType==='ryukyoku'){
+        await mjEndRyukyoku();
+        return;
+      }
+      await update(ref(db,`majong_room/${currentRoomId}`), gangUpd);
+    } else {
+      await update(ref(db,`majong_room/${currentRoomId}`),{
+        'actionPending/gangIntent':currentKey,
+        'actionPending/responded':{...(ap.responded||{}), [currentKey]:true}
+      });
+    }
+  } catch(err) {
     console.error('mjGang error:', err);
   } finally {
     mjBusy=false;
@@ -2039,22 +2165,22 @@ window.mjHu = async () => {
   if(!ap?.tile) return;
   const myOpt=(ap.options||[]).find(o=>o.pid===currentKey&&o.types.includes('hu'));
   if(!myOpt) return;
+  if((ap.responded||{})[currentKey]) return;
   mjBusy=true;
   try {
-    // 先登記胡意圖，等待所有可胡玩家表態
-    const upd={};
-    upd[`actionPending/huIntents/${currentKey}`]=true;
-    upd[`actionPending/responded/${currentKey}`]=true;
-    await update(ref(db,`majong_room/${currentRoomId}`),upd);
-    // 檢查是否所有可胡玩家均已回應
-    const d2 = { ...d, actionPending: {
-      ...ap,
-      huIntents: { ...(ap.huIntents||{}), [currentKey]: true },
-      responded: { ...(ap.responded||{}), [currentKey]: true }
-    }};
-    const res=mjTryResolveIntents(d2);
-    if(res) await update(ref(db,`majong_room/${currentRoomId}`),res);
-  } catch(err){
+    const huIntents={...(ap.huIntents||{}), [currentKey]:true};
+    const responded={...(ap.responded||{}), [currentKey]:true};
+    const newAp={...ap, huIntents, responded};
+    const highest=mjGetHighestPriorityHuPlayer(d, newAp);
+    if(highest===currentKey){
+      await update(ref(db,`majong_room/${currentRoomId}`), mjBuildHuSettlement(d, currentKey, ap));
+    } else {
+      await update(ref(db,`majong_room/${currentRoomId}`),{
+        'actionPending/huIntents':huIntents,
+        'actionPending/responded':responded
+      });
+    }
+  } catch(err) {
     console.error('mjHu error:', err);
   } finally {
     mjBusy=false;
@@ -2091,14 +2217,13 @@ window.mjZimo = async () => {
   money[currentKey]=(money[currentKey]||3000)+totalGet;
   let nextB=bIdx; let bankerChanged=false;
   if(!isDealer){ nextB=order.indexOf(currentKey); bankerChanged=true; }
-  const wind=mjNextCircleWind(d, nextB, bankerChanged);
   const ranking=mjMoneyRankingText({...d,money}, money);
   if(mjCheckBankruptcy(money, order)){
     await update(ref(db,`majong_room/${currentRoomId}`),{
       gameState:'ended',endType:'bankrupt',
       winnerName:d.users?.[currentKey]?.name||myName,
       winnerId:currentKey,winTile,winFan:fan,winPay:pay,
-      money,nextBankerIdx:nextB,bankerChanged,circleWind:wind,
+      money,nextBankerIdx:nextB,bankerChanged,
       endDetail:ranking,mjRanking:ranking,actionPending:null
     });
   } else {
@@ -2107,7 +2232,7 @@ window.mjZimo = async () => {
       gameState:'ended',endType:'zimo',
       winnerName:d.users?.[currentKey]?.name||myName,
       winnerId:currentKey,winTile,winFan:fan,winPay:pay,
-      money,nextBankerIdx:nextB,bankerChanged,circleWind:wind,
+      money,nextBankerIdx:nextB,bankerChanged,
       endDetail:detail,fanDetail
     });
   }
@@ -2118,221 +2243,29 @@ window.mjPassAct = async () => {
   if(mjBusy) return;
   const d=roomCache; const ap=d?.actionPending;
   if(!ap) return;
+  if((ap.responded||{})[currentKey]) return;
   mjBusy=true;
   try {
-    // 標記自己已回應（PASS）
-    await update(ref(db,`majong_room/${currentRoomId}`),{
-      [`actionPending/responded/${currentKey}`]:true
-    });
-    const d2 = { ...d, actionPending: {
-      ...ap,
-      responded: { ...(ap.responded||{}), [currentKey]: true }
-    }};
-    const res=mjTryResolveIntents(d2);
-    if(res) await update(ref(db,`majong_room/${currentRoomId}`),res);
-  } catch(err){
+    const responded={...(ap.responded||{}), [currentKey]:true};
+    const newAp={...ap, responded};
+    const resolved=mjTryResolveIntents(d, newAp);
+    if(resolved){
+      await update(ref(db,`majong_room/${currentRoomId}`), resolved);
+      return;
+    }
+    const activeOpts=(ap.options||[]).filter(o=>mjIsActivePlayer(d,o.pid));
+    const allResponded=activeOpts.every(o=>responded[o.pid]);
+    const upd={'actionPending/responded':responded};
+    if(allResponded && mjAllHuPlayersPassed(newAp) && !mjTryResolveIntents(d, newAp)){
+      Object.assign(upd, mjResolvePendingAfterPass(d, []));
+    }
+    await update(ref(db,`majong_room/${currentRoomId}`), upd);
+  } catch(err) {
     console.error('mjPassAct error:', err);
   } finally {
     mjBusy=false;
   }
 };
-
-// ===== 共用結算 / 意圖解析 =====
-function mjOptionPids(ap){ return (ap?.options||[]).map(o=>o.pid); }
-function mjAllRespondedOrIneligible(d, ap){
-  const responded = ap.responded||{};
-  const pids = mjOptionPids(ap);
-  for(const pid of pids){
-    if(!mjIsActivePlayer(d, pid)) continue; // 離線玩家視為已回應
-    if(!responded[pid]) return false;
-  }
-  return true;
-}
-function mjPickHuWinner(d, ap){
-  const order=d.playerOrder||[];
-  const fromIdx=order.indexOf(ap.from);
-  const intents=Object.keys(ap.huIntents||{}).filter(pid=>{
-    const opt=(ap.options||[]).find(o=>o.pid===pid);
-    return opt && opt.types.includes('hu') && mjIsActivePlayer(d,pid);
-  });
-  if(!intents.length) return null;
-  // 攔胡：距離放槍者最近（順時針）者優先
-  let best=intents[0]; let bestDist=Infinity;
-  intents.forEach(pid=>{
-    const idx=order.indexOf(pid);
-    const dist=((idx - fromIdx) + order.length) % order.length;
-    if(dist>0 && dist<bestDist){ bestDist=dist; best=pid; }
-  });
-  return best;
-}
-function mjTryResolveIntents(d){
-  const ap=d.actionPending;
-  if(!ap) return null;
-  if(!mjAllRespondedOrIneligible(d, ap)) return null;
-
-  // 優先權 1：胡（含攔胡）
-  if(ap.huIntents && Object.keys(ap.huIntents).length){
-    const winner=mjPickHuWinner(d, ap);
-    if(winner) return mjBuildHuSettlement(d, winner, ap.tile, ap.from);
-  }
-  // 優先權 2：槓 > 碰（同順位取先登記者，但兩者互斥；若同時存在，槓優先）
-  if(ap.gangIntent){
-    const opt=(ap.options||[]).find(o=>o.pid===ap.gangIntent);
-    if(opt && opt.types.includes('gang')){
-      // 用 sync wrapper：mjBuildGangUpdate 內含 drawWithFlowerReplace 純同步，安全
-      // 但為統一 await 呼叫端使用 Promise.resolve
-      return mjBuildGangUpdateSync(d, ap.gangIntent, ap.tile);
-    }
-  }
-  if(ap.pengIntent){
-    const opt=(ap.options||[]).find(o=>o.pid===ap.pengIntent);
-    if(opt && opt.types.includes('peng')){
-      return mjBuildPengUpdate(d, ap.pengIntent, ap.tile);
-    }
-  }
-  // 優先權 3：吃
-  if(ap.chiIntent && ap.chiCombo){
-    const opt=(ap.options||[]).find(o=>o.pid===ap.chiIntent);
-    if(opt && opt.types.includes('chi')){
-      return mjBuildChiUpdate(d, ap.chiIntent, ap.chiCombo, ap.tile);
-    }
-  }
-  // 全部 PASS：清空並輪到下一位
-  const after=apIndexSafe(ap.afterTurn, d.turnIndex||0);
-  return { actionPending:null, turnIndex:mjNextActiveIndex(d, after), drawPhase:true, turnUpdatedAt:Date.now() };
-}
-
-// ---- Peng 執行 (回傳 Firebase update payload) ----
-function mjBuildPengUpdate(d, pid, tile){
-  const hand=[...(d.hands?.[pid]||[])];
-  let removed=0;
-  const newHand=hand.filter(t=>{ if(t.id===tile.id&&removed<2){removed++;return false;} return true; });
-  const melds={...(d.melds||{})};
-  const list=Array.isArray(melds[pid])?[...melds[pid]]:[];
-  const cleanTile=JSON.parse(JSON.stringify(tile));
-  list.push({type:'peng',tiles:[cleanTile,cleanTile,cleanTile]});
-  melds[pid]=list;
-  const idx=(d.playerOrder||[]).indexOf(pid);
-  const upd={};
-  upd[`hands/${pid}`]=newHand;
-  upd[`lastDrawn/${pid}`]=null;
-  upd['melds']=melds;
-  upd['turnIndex']=idx;
-  upd['drawPhase']=false;
-  upd['actionPending']=null;
-  upd['turnUpdatedAt']=Date.now();
-  upd['discards']=(d.discards||[]).slice(0,-1);
-  upd['activeDiscard']=false;
-  return upd;
-}
-
-// ---- Gang 執行 (同步版本，供意圖結算使用) ----
-function mjBuildGangUpdateSync(d, pid, tile){
-  const hand=[...(d.hands?.[pid]||[])];
-  let removed=0;
-  const newHand=hand.filter(t=>{ if(t.id===tile.id&&removed<3){removed++;return false;} return true; });
-  const melds={...(d.melds||{})};
-  if(!melds[pid]) melds[pid]=[];
-  melds[pid]=[...melds[pid],{type:'gang',tiles:[tile,tile,tile,tile]}];
-  const deck=[...(d.deck||[])];
-  if(!deck.length || mjShouldRyukyoku(deck)){
-    // 交由 renderMJ/自動流局處理；此處僅清 pending
-    return { actionPending:null, drawPhase:false, turnUpdatedAt:Date.now(), ...mjRyukyokuPayload() };
-  }
-  const extra=deck.shift();
-  newHand.push(extra);
-  const flowerArr=[...((d.flowers||{})[pid]||[])];
-  drawWithFlowerReplace(newHand,flowerArr,deck);
-  const idx=(d.playerOrder||[]).indexOf(pid);
-  const upd={};
-  upd[`hands/${pid}`]=newHand;
-  upd[`flowers/${pid}`]=flowerArr;
-  upd['melds']=melds;
-  upd['deck']=deck;
-  upd['turnIndex']=idx;
-  upd['drawPhase']=false;
-  upd['actionPending']=null;
-  upd['turnUpdatedAt']=Date.now();
-  upd['discards']=(d.discards||[]).slice(0,-1);
-  upd['activeDiscard']=false;
-  if(mjIsWinWithMelds(newHand,(melds[pid]||[]).length)){
-    upd['actionPending']={type:'zimoReady',player:pid,createdAt:Date.now()};
-  } else if(mjShouldRyukyoku(deck)){
-    Object.assign(upd, mjRyukyokuPayload());
-  }
-  return upd;
-}
-async function mjBuildGangUpdate(d, pid, tile){ return mjBuildGangUpdateSync(d, pid, tile); }
-
-// ---- Chi 執行 ----
-function mjBuildChiUpdate(d, pid, chosen, tile){
-  const hand=[...(d.hands?.[pid]||[])];
-  const removeIds=[chosen.combo[0].id, chosen.combo[1].id];
-  const newHand=[]; const used={};
-  hand.forEach(t=>{
-    const i=removeIds.indexOf(t.id);
-    if(i>=0 && !used[i]){ used[i]=true; return; }
-    newHand.push(t);
-  });
-  const melds={...(d.melds||{})};
-  const list=Array.isArray(melds[pid])?[...melds[pid]]:[];
-  const cleanTile=JSON.parse(JSON.stringify(tile));
-  const trio=[JSON.parse(JSON.stringify(chosen.combo[0])),JSON.parse(JSON.stringify(chosen.combo[1])),cleanTile].sort(mjTileSort);
-  list.push({type:'chi',tiles:trio,fromTile:tile.id});
-  melds[pid]=list;
-  const idx=(d.playerOrder||[]).indexOf(pid);
-  return {
-    [`hands/${pid}`]:newHand,
-    melds, turnIndex:idx, drawPhase:false, actionPending:null, turnUpdatedAt:Date.now(),
-    discards:(d.discards||[]).slice(0,-1), activeDiscard:false
-  };
-}
-
-// ---- Hu 結算 (放槍胡) ----
-function mjBuildHuSettlement(d, winnerId, tile, fromId){
-  const order=d.playerOrder||[];
-  const money={...(d.money||{})};
-  const bIdx=d.bankerIdx||0;
-  const isDealer=order[bIdx]===winnerId;
-  const wFlowers=(d.flowers||{})[winnerId]||[];
-  const winnerIdx=order.indexOf(winnerId);
-  const wHand=d.hands?.[winnerId]||[];
-  const fanRes=mjCalcFan(wHand,tile,false,isDealer,d.melds?.[winnerId]||[],wFlowers,d.circleWind||0,winnerIdx);
-  const fan=fanRes.fan; const fanDetail=fanRes.detail.join(' / ');
-  const pay=mjFanPay(fan);
-  const loserIsDealer=order[bIdx]===fromId;
-  const owed=(isDealer||loserIsDealer)?pay*2:pay;
-  money[winnerId]=(money[winnerId]||3000)+owed;
-  money[fromId]=(money[fromId]||3000)-owed;
-  let nextB=bIdx; let bankerChanged=false;
-  if(!isDealer){ nextB=(bIdx+1)%order.length; bankerChanged=true; }
-  const wind=mjNextCircleWind(d, nextB, bankerChanged);
-  const ranking=mjMoneyRankingText({...d,money}, money);
-  const base = {
-    winnerName:d.users?.[winnerId]?.name||'?',
-    winnerId, winTile:tile, winFan:fan, winPay:pay,
-    money, nextBankerIdx:nextB, bankerChanged,
-    circleWind: wind,
-    actionPending:null
-  };
-  if(mjCheckBankruptcy(money, order)){
-    return { gameState:'ended', endType:'bankrupt', ...base,
-      endDetail:ranking, mjRanking:ranking };
-  }
-  const detail=buildMoneyDetail(order,d.users,money);
-  return { gameState:'ended', endType:'hu', ...base,
-    loserName:d.users?.[fromId]?.name||'?',
-    endDetail:detail, fanDetail };
-}
-
-// ---- 圈風遞增：莊家輪回到起始莊家時 +1 ----
-function mjNextCircleWind(d, nextB, bankerChanged){
-  const cur = d.circleWind||0;
-  if(!bankerChanged) return cur;
-  const startB = (d.startBankerIdx==null? (d.bankerIdx||0) : d.startBankerIdx);
-  if(nextB === startB) return (cur + 1) % 4;
-  return cur;
-}
 
 function buildMoneyDetail(order,users,money){
   return order.map(pid=>`${users?.[pid]?.name||'?'}: $${(money[pid]||3000).toLocaleString()}`).join(' | ');
@@ -2421,7 +2354,7 @@ function renderMJ(d){
   const bankerName=d.users?.[order[bIdx]]?.name||'?';
 
   document.getElementById('mj-banker').textContent=`🏦 莊: ${bankerName}`;
-  document.getElementById('mj-wind').textContent=`🌀莊風:${winds[((d.bankerIdx||0))%4]}`;
+  document.getElementById('mj-wind').textContent=`🌀目前: ${winds[d.circleWind||0]}`;
   const wallCnt=(d.deck||[]).length;
   const drawableCnt = Math.max(0, wallCnt - MJ_DEAD_WALL);
   document.getElementById('mj-wall').textContent=drawableCnt<=0
@@ -2450,7 +2383,7 @@ function renderMJ(d){
     const turnName=d.users?.[order[d.turnIndex]]?.name||'?';
     if(ap?.type==='zimoReady'&&ap.player===currentKey){
       st.innerHTML='<span style="color:#facc15;font-weight:bold;animation:pulse 1.5s infinite;">🎉 自摸！請選擇！</span>';
-    } else if(ap?.options?.find(o=>o.pid===currentKey)){
+    } else if(ap?.options?.find(o=>o.pid===currentKey && !(ap.responded||{})[currentKey])){
       st.innerHTML='<span style="color:#facc15;animation:pulse 1.5s infinite;">⚡ 你可以行動！</span>';
     } else if(ap?.chiIntent===currentKey){
       st.innerHTML='<span style="color:#94a3b8;animation:pulse 1.5s infinite;">⏳ 等待其他玩家確認...</span>';
@@ -2623,7 +2556,7 @@ function renderMJ(d){
       }));
     }
     if(ap?.options){
-      const mo=ap.options.find(o=>o.pid===currentKey);
+      const mo=ap.options.find(o=>o.pid===currentKey && !(ap.responded||{})[currentKey]);
       if(mo){
         actEl.classList.remove('hidden');
         if(mo.types.includes('hu'))   actEl.appendChild(makeActBtn('胡牌！','#e74c3c',mjHu));
