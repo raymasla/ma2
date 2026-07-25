@@ -285,11 +285,15 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
    遊戲按鈕
 =================================================== */
 .gbtn{
-  padding:11px 24px;border-radius:30px;border:none;font-weight:900;
+  padding:11px 26px;border-radius:30px;border:none;font-weight:900;
   cursor:pointer;font-size:1em;color:#fff;
-  box-shadow:0 5px 0 rgba(0,0,0,.4);transition:.1s;
+  box-shadow:0 5px 0 rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.35),inset 0 -6px 12px rgba(0,0,0,.18);
+  transition:transform .12s ease,box-shadow .12s ease,filter .12s ease;
   font-family:inherit;letter-spacing:.5px;
+  text-shadow:0 1px 2px rgba(0,0,0,.35);
+  position:relative;overflow:hidden;
 }
+.gbtn:hover{filter:brightness(1.08);transform:translateY(-1px);}
 .gbtn:active{transform:translateY(4px);box-shadow:none;}
 .gbtn:disabled{background:#64748b;cursor:not-allowed;box-shadow:none;transform:translateY(4px);filter:grayscale(.7);}
 .gbtn-play{background:linear-gradient(to bottom,#3b82f6,#1d4ed8);}
@@ -297,6 +301,9 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
 .gbtn-start{background:linear-gradient(to bottom,#10b981,#059669);}
 .gbtn-purple{background:linear-gradient(to bottom,#8b5cf6,#7c3aed);}
 .gbtn-gold{background:linear-gradient(to bottom,#f59e0b,#d97706);}
+#mj-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+#mj-actions .gbtn{animation:mjBtnPop .18s ease-out;}
+@keyframes mjBtnPop{from{opacity:0;transform:translateY(6px) scale(.94);}to{opacity:1;transform:none;}}
 
 /* ===================================================
    麻將 Mahjong
@@ -849,7 +856,7 @@ window.toggleDiscard = () => {
 
 const DB = { big2: 'big_2_room', mahjong: 'majong_room' };
 const ROOM_SEAT_PREFIX = 'lockedSeatKey';
-const MJ_ACTION_TIMEOUT = 45000;
+const MJ_ACTION_TIMEOUT = 20000;
 const MJ_DEAD_WALL = 16; 
 
 function mjShouldRyukyoku(deck){ return !deck || deck.length <= MJ_DEAD_WALL; }
@@ -2255,9 +2262,11 @@ window.mjPassAct = async () => {
     }
     const activeOpts=(ap.options||[]).filter(o=>mjIsActivePlayer(d,o.pid));
     const allResponded=activeOpts.every(o=>responded[o.pid]);
-    const upd={'actionPending/responded':responded};
+    let upd = {};
     if(allResponded && mjAllHuPlayersPassed(newAp) && !mjTryResolveIntents(d, newAp)){
-      Object.assign(upd, mjResolvePendingAfterPass(d, []));
+      upd = mjResolvePendingAfterPass(d, []);
+    } else {
+      upd = {'actionPending/responded': responded};
     }
     await update(ref(db,`majong_room/${currentRoomId}`), upd);
   } catch(err) {
@@ -2528,9 +2537,12 @@ function renderMJ(d){
     bStart.textContent='開始麻將';
   } else if(d.gameState==='playing'){
     bStart.classList.add('hidden');
-    bDraw.classList.remove('hidden');bDiscard.classList.remove('hidden');
-    bDraw.disabled=!isMe||!d.drawPhase||!!ap;
-    bDiscard.disabled=!isMe||d.drawPhase||!!ap||mjSel<0;
+    const canDraw    = isMe && d.drawPhase && !ap;
+    const canDiscard = isMe && !d.drawPhase && !ap;
+    bDraw.classList.toggle('hidden', !canDraw);
+    bDiscard.classList.toggle('hidden', !canDiscard);
+    bDraw.disabled = !canDraw;
+    bDiscard.disabled = !canDiscard || mjSel<0;
   } else {
     bStart.classList.remove('hidden');
     bDraw.classList.add('hidden');bDiscard.classList.add('hidden');
@@ -2559,10 +2571,14 @@ function renderMJ(d){
       const mo=ap.options.find(o=>o.pid===currentKey && !(ap.responded||{})[currentKey]);
       if(mo){
         actEl.classList.remove('hidden');
-        if(mo.types.includes('hu'))   actEl.appendChild(makeActBtn('胡牌！','#e74c3c',mjHu));
-        if(mo.types.includes('gang')) actEl.appendChild(makeActBtn('槓','#8e44ad',mjGang));
-        if(mo.types.includes('peng')) actEl.appendChild(makeActBtn('碰','#e67e22',mjPeng));
-        if(mo.types.includes('chi'))  actEl.appendChild(makeActBtn('吃','#0ea5e9',mjChi));
+        if(mo.types.includes('hu')){
+          // 有胡的選項時，只保留 胡 + PASS
+          actEl.appendChild(makeActBtn('胡牌！','#e74c3c',mjHu));
+        } else {
+          if(mo.types.includes('gang')) actEl.appendChild(makeActBtn('槓','#8e44ad',mjGang));
+          if(mo.types.includes('peng')) actEl.appendChild(makeActBtn('碰','#e67e22',mjPeng));
+          if(mo.types.includes('chi'))  actEl.appendChild(makeActBtn('吃','#0ea5e9',mjChi));
+        }
         actEl.appendChild(makeActBtn('PASS','#64748b',mjPassAct));
       }
     }
@@ -2655,7 +2671,13 @@ function renderChat(chat){
   Object.values(chat).sort((a,b)=>(a.time||0)-(b.time||0)).forEach(m=>{
     if(!m?.text) return;
     const d=document.createElement('div');
-    d.innerHTML=`<b>${m.user||'?'}:</b> ${m.text}`;
+    const b=document.createElement('b');
+    b.textContent=(m.user||'?')+':';
+    d.appendChild(b);
+    d.appendChild(document.createTextNode(' '));
+    const span=document.createElement('span');
+    span.textContent=m.text;
+    d.appendChild(span);
     el.appendChild(d);
   });
   el.scrollTop=el.scrollHeight;
