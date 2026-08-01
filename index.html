@@ -493,6 +493,28 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
   animation:pulse 1.6s infinite;
 }
 .ting-badge.self{font-size:.78em;padding:2px 8px;}
+.delta{font-size:.78em;font-weight:700;margin-left:5px;padding:1px 6px;border-radius:999px;white-space:nowrap;}
+.delta.up{color:#4ade80;background:rgba(74,222,128,.12);}
+.delta.down{color:#f87171;background:rgba(248,113,113,.12);}
+.delta.flat{color:#94a3b8;background:rgba(148,163,184,.12);}
+.hu-ting{font-size:.72em;color:#facc15;margin-top:2px;}
+.res-box{text-align:left;font-size:.92em;}
+.res-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:10px;}
+.fan-pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.8em;font-weight:700;
+  background:linear-gradient(135deg,rgba(99,102,241,.35),rgba(168,85,247,.35));
+  border:1px solid rgba(255,255,255,.18);color:#e2e8f0;}
+.res-total{text-align:center;font-weight:800;color:#facc15;margin-bottom:8px;}
+.res-ting{text-align:center;font-size:.85em;color:#a5b4fc;margin-bottom:10px;}
+.res-flow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;
+  padding:6px 8px;margin-bottom:6px;border-radius:10px;background:rgba(255,255,255,.05);font-size:.82em;}
+.flow-p{font-weight:700;}
+.flow-neg{color:#f87171;font-weight:700;}
+.flow-pos{color:#4ade80;font-weight:700;}
+.flow-arrow{color:#94a3b8;}
+.res-bal{margin-top:10px;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;}
+.bal-row{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:.85em;}
+.bal-name{min-width:70px;font-weight:700;}
+.bal-sub{font-size:.85em;color:#94a3b8;margin-left:auto;}
 #mj-my-ting{
   display:flex;align-items:flex-end;justify-content:center;flex-wrap:wrap;
   gap:4px 6px;padding:6px 10px 8px;margin:0;
@@ -863,6 +885,7 @@ function mjShouldRyukyoku(deck){ return !deck || deck.length <= MJ_DEAD_WALL; }
 function mjRyukyokuPayload(extra={}){
   return {
     gameState:'ended', endType:'ryukyoku', winnerName:'荒局',
+    dealerStreak:(roomCache?.dealerStreak||0)+1,
     actionPending:null, drawPhase:false, turnUpdatedAt:Date.now(), ...extra
   };
 }
@@ -1620,13 +1643,11 @@ function mjCalcFan(hand,winTile,isTsumo,isDealer,melds,flowers,circleWind,seatWi
 
   fan+=1; detail.push('底 1台');
   if(isTsumo){ fan+=1; detail.push('自摸 +1台'); }
-  if(isDealer){ fan+=1; detail.push('莊家 +1台'); }
 
   const flo=flowers||[];
-  let flowerFan=flo.length;
-  if(flowerFan){ fan+=flowerFan; detail.push(`花牌 +${flowerFan}台`); }
   const myWindIdx=seatWind|0; 
   const matchFlowers=flo.filter(f=>(f.num-1)%4===myWindIdx);
+  if(matchFlowers.length){ fan+=matchFlowers.length; detail.push(`正花 +${matchFlowers.length}台`); }
   if(matchFlowers.length>=2){ fan+=1; detail.push('對花 +1台'); }
   if(flo.length===8){ fan+=8; detail.push('八仙過海 +8台'); }
 
@@ -1641,14 +1662,17 @@ function mjCalcFan(hand,winTile,isTsumo,isDealer,melds,flowers,circleWind,seatWi
   allMelds.triplets.forEach(id=>{
     if(dragonIds.includes(id)){ fan+=1; detail.push(`三元牌(${MJ_TILE_MAP[id]?.disp||id}) +1台`); }
     if(id===`z${(circleWind|0)+1}`){ fan+=1; detail.push('圈風刻 +1台'); }
-    if(id===`z${(seatWind|0)+1}` && (seatWind|0)!==(circleWind|0)){ fan+=1; detail.push('門風刻 +1台'); }
+    if(id===`z${(seatWind|0)+1}`){ fan+=1; detail.push('門風刻 +1台'); }
   });
 
   const totalSets = allMelds.triplets.length + allMelds.runs.length;
   if(totalSets>=5 && allMelds.runs.length===0){ fan+=4; detail.push('碰碰胡 +4台'); }
-  else if(allMelds.runs.length>=4 && allMelds.triplets.length===0){ fan+=2; detail.push('平胡 +2台'); }
+  else if(allMelds.runs.length>=4 && allMelds.triplets.length===0
+          && (flowers||[]).length===0
+          && !all.some(t=>t.suit==='jihai')){ fan+=2; detail.push('平胡 +2台'); }
 
-  const handCnt=countIds(hand);
+  const concealedSource = isTsumo ? [...hand, winTile] : hand;
+  const handCnt=countIds(concealedSource);
   const concealedTriplets=Object.values(handCnt).filter(v=>v>=3).length;
   if(concealedTriplets>=4){ fan+=8; detail.push('四暗刻 +8台'); }
   else if(concealedTriplets>=3){ fan+=2; detail.push('三暗刻 +2台'); }
@@ -1656,8 +1680,6 @@ function mjCalcFan(hand,winTile,isTsumo,isDealer,melds,flowers,circleWind,seatWi
   const concealed=(melds||[]).every(m=>m.type==='angang'); 
   if(concealed){ fan+=1; detail.push('門清 +1台'); }
   if(concealed && isTsumo){ fan+=1; detail.push('門清自摸 +1台'); }
-
-  if(Object.keys(cnt).length===7 && Object.values(cnt).every(v=>v===2)){ fan+=4; detail.push('七對 +4台'); }
 
   (melds||[]).forEach(m=>{
     if(m.type==='gang'||m.type==='addgang'){ fan+=1; detail.push('明槓 +1台'); }
@@ -1710,6 +1732,8 @@ window.mjStart = async () => {
   await update(ref(db,`majong_room/${currentRoomId}`),{
     gameState:'playing',playerOrder:order,hands,deck,flowers,
     bankerIdx:bIdx,turnIndex:bIdx,
+    dealerStreak: (bIdx===d.bankerIdx) ? (d.dealerStreak||0) : 0,
+    moneyDelta:null, fanList:null, winTingTxt:null, loserId:null,
     drawPhase:false,           
     lastDrawn:{},              
     discards:[],melds:{},money,
@@ -1987,27 +2011,41 @@ function mjBuildHuSettlement(d, winnerPid, ap){
   const myHand=d.hands?.[winnerPid]||[];
   const order=d.playerOrder||[];
   const money={...(d.money||{})};
+  const prevMoney={...(d.money||{})};
   const bIdx=d.bankerIdx||0;
   const isDealer=order[bIdx]===winnerPid;
+  const loserIsDealer=order[bIdx]===fromId;
+  const streak=d.dealerStreak||0;
   const myFlowers=(d.flowers||{})[winnerPid]||[];
   const myIdx=order.indexOf(winnerPid);
-  const fanRes=mjCalcFan(myHand,tile,false,isDealer,d.melds?.[winnerPid]||[],myFlowers,d.circleWind||0,myIdx);
-  const fan=fanRes.fan;
-  const fanDetail=fanRes.detail.join(' / ');
-  const pay=mjFanPay(fan);
-  const loserIsDealer=order[bIdx]===fromId;
-  const owed=(isDealer||loserIsDealer)?pay*2:pay;
+  const fanRes=mjCalcFan(myHand,tile,false,false,d.melds?.[winnerPid]||[],myFlowers,d.circleWind||0,myIdx);
+  let finalFan=fanRes.fan;
+  const fanList=[...fanRes.detail];
+  if(isDealer||loserIsDealer){
+    const dealerExtraFan=1+(streak*2);
+    finalFan+=dealerExtraFan;
+    fanList.push(`莊家及連莊 +${dealerExtraFan}台`);
+  }
+  const fanDetail=fanList.join(' / ');
+  const baseMoney=300, fanMoney=100;
+  const owed=baseMoney+(finalFan*fanMoney);
   money[winnerPid]=(money[winnerPid]||3000)+owed;
   money[fromId]=(money[fromId]||3000)-owed;
   let nextB=bIdx;
   let bankerChanged=false;
-  if(!isDealer){ nextB=(bIdx+1)%order.length; bankerChanged=true; }
+  let nextStreak=streak;
+  if(!isDealer){ nextB=(bIdx+1)%order.length; bankerChanged=true; nextStreak=0; }
+  else { nextStreak+=1; }
+  const moneyDelta={};
+  order.forEach(pid=>{ moneyDelta[pid]=(money[pid]??3000)-(prevMoney[pid]??3000); });
+  const winTingTxt=mjTingTextOf(myHand, (d.melds?.[winnerPid]||[]).length);
   if(mjCheckBankruptcy(money, order)){
     return {
       gameState:'ended',endType:'bankrupt',
       winnerName:d.users?.[winnerPid]?.name||'?',
-      winnerId:winnerPid,winTile:tile,winFan:fan,winPay:pay,
-      money,nextBankerIdx:nextB,bankerChanged,
+      winnerId:winnerPid,winTile:tile,winFan:finalFan,winPay:owed,
+      money,nextBankerIdx:nextB,bankerChanged,dealerStreak:nextStreak,
+      moneyDelta,fanList,winTingTxt,loserId:fromId,fanDetail,
       endDetail:mjMoneyRankingText({...d,money}, money),
       mjRanking:mjMoneyRankingText({...d,money}, money),
       actionPending:null
@@ -2016,13 +2054,21 @@ function mjBuildHuSettlement(d, winnerPid, ap){
   return {
     gameState:'ended',endType:'hu',
     winnerName:d.users?.[winnerPid]?.name||'?',
-    winnerId:winnerPid,winTile:tile,winFan:fan,winPay:pay,
-    loserName:d.users?.[fromId]?.name||'?',
-    money,nextBankerIdx:nextB,bankerChanged,
+    winnerId:winnerPid,winTile:tile,winFan:finalFan,winPay:owed,
+    loserName:d.users?.[fromId]?.name||'?', loserId:fromId,
+    money,nextBankerIdx:nextB,bankerChanged,dealerStreak:nextStreak,
+    moneyDelta,fanList,winTingTxt,
     endDetail:buildMoneyDetail(order,d.users,money),
     fanDetail,
     actionPending:null
   };
+}
+function mjTingTextOf(hand, meldsCount){
+  try{
+    const ids=mjTenpaiTiles(hand, meldsCount||0);
+    if(!ids || !ids.length) return null;
+    return ids.map(id=>MJ_TILE_MAP[id]?.disp||id).join('');
+  }catch(e){ return null; }
 }
 function mjBuildChiSettlement(d, chiPid, chosen, ap){
   const tile=ap.tile;
@@ -2204,33 +2250,47 @@ window.mjZimo = async () => {
   const myHand=d.hands?.[currentKey]||[];
   const order=d.playerOrder||[];
   const money={...(d.money||{})};
+  const prevMoney={...(d.money||{})};
   const bIdx=d.bankerIdx||0;
   const isDealer=order[bIdx]===currentKey;
+  const streak=d.dealerStreak||0;
   const winTile=myHand[myHand.length-1];
   const baseHand=myHand.slice(0,-1);
   const myFlowers=(d.flowers||{})[currentKey]||[];
   const myIdx=order.indexOf(currentKey);
-  const fanRes=mjCalcFan(baseHand,winTile,true,isDealer,d.melds?.[currentKey]||[],myFlowers,d.circleWind||0,myIdx);
-  const fan=fanRes.fan; const fanDetail=fanRes.detail.join(' / ');
-  const pay=mjFanPay(fan);
+  const fanRes=mjCalcFan(baseHand,winTile,true,false,d.melds?.[currentKey]||[],myFlowers,d.circleWind||0,myIdx);
+  const baseFan=fanRes.fan;
+  const fanList=[...fanRes.detail];
+  if(isDealer||order.some(pid=>pid!==currentKey&&order[bIdx]===pid)){
+    fanList.push(`莊家及連莊 +${1+streak*2}台（對莊家/由莊家計）`);
+  }
+  const fanDetail=fanList.join(' / ');
   let totalGet=0;
+  const baseMoney=300, fanMoney=100;
   order.forEach(pid=>{
     if(pid===currentKey) return;
     const pidIsDealer = order[bIdx]===pid;
-    const owed=(isDealer||pidIsDealer)?pay*2:pay;
+    let currentFan=baseFan;
+    if(isDealer||pidIsDealer) currentFan += (1 + streak*2);
+    const owed=baseMoney+(currentFan*fanMoney);
     money[pid]=(money[pid]||3000)-owed;
     totalGet+=owed;
   });
   money[currentKey]=(money[currentKey]||3000)+totalGet;
-  let nextB=bIdx; let bankerChanged=false;
-  if(!isDealer){ nextB=order.indexOf(currentKey); bankerChanged=true; }
+  let nextB=bIdx; let bankerChanged=false; let nextStreak=streak;
+  if(!isDealer){ nextB=(bIdx+1)%order.length; bankerChanged=true; nextStreak=0; }
+  else { nextStreak+=1; }
+  const moneyDelta={};
+  order.forEach(pid=>{ moneyDelta[pid]=(money[pid]??3000)-(prevMoney[pid]??3000); });
+  const winTingTxt=mjTingTextOf(baseHand, (d.melds?.[currentKey]||[]).length);
   const ranking=mjMoneyRankingText({...d,money}, money);
   if(mjCheckBankruptcy(money, order)){
     await update(ref(db,`majong_room/${currentRoomId}`),{
       gameState:'ended',endType:'bankrupt',
       winnerName:d.users?.[currentKey]?.name||myName,
-      winnerId:currentKey,winTile,winFan:fan,winPay:pay,
-      money,nextBankerIdx:nextB,bankerChanged,
+      winnerId:currentKey,winTile,winFan:baseFan,winPay:totalGet,
+      money,nextBankerIdx:nextB,bankerChanged,dealerStreak:nextStreak,
+      moneyDelta,fanList,winTingTxt,loserId:null,fanDetail,
       endDetail:ranking,mjRanking:ranking,actionPending:null
     });
   } else {
@@ -2238,8 +2298,9 @@ window.mjZimo = async () => {
     await update(ref(db,`majong_room/${currentRoomId}`),{
       gameState:'ended',endType:'zimo',
       winnerName:d.users?.[currentKey]?.name||myName,
-      winnerId:currentKey,winTile,winFan:fan,winPay:pay,
-      money,nextBankerIdx:nextB,bankerChanged,
+      winnerId:currentKey,winTile,winFan:baseFan,winPay:totalGet,
+      money,nextBankerIdx:nextB,bankerChanged,dealerStreak:nextStreak,
+      moneyDelta,fanList,winTingTxt,loserId:null,
       endDetail:detail,fanDetail
     });
   }
@@ -2362,14 +2423,18 @@ function renderMJ(d){
   const bIdx=d.bankerIdx||0;
   const bankerName=d.users?.[order[bIdx]]?.name||'?';
 
-  document.getElementById('mj-banker').textContent=`🏦 莊: ${bankerName}`;
+  const lianN=(d.dealerStreak||0)+1;
+  document.getElementById('mj-banker').textContent=`${lianN>1?`(連${lianN})`:''}🏦 莊: ${bankerName}`;
   document.getElementById('mj-wind').textContent=`🌀目前: ${winds[d.circleWind||0]}`;
   const wallCnt=(d.deck||[]).length;
   const drawableCnt = Math.max(0, wallCnt - MJ_DEAD_WALL);
   document.getElementById('mj-wall').textContent=drawableCnt<=0
     ? `🀄 抽牌: ${drawableCnt}（最後八疊）`
     : `🀄 抽牌: ${drawableCnt}`;
-  document.getElementById('mj-money').textContent=`💰 ${myMoney.toLocaleString()}`;
+  const myDelta=(d.gameState==='ended') ? (d.moneyDelta?.[currentKey]||0) : 0;
+  document.getElementById('mj-money').innerHTML=myDelta
+    ? `💰 ${myMoney.toLocaleString()} <span class="delta ${myDelta>0?'up':'down'}">${myDelta>0?'+':'-'}$${Math.abs(myDelta).toLocaleString()}</span>`
+    : `💰 ${myMoney.toLocaleString()}`;
   const myIdx=order.indexOf(currentKey);
   let selfTingHtml=`💺自己: ${myIdx>=0?winds[myIdx%4]:'?'}`;
   if(d.gameState==='playing' && currentKey){
@@ -2412,12 +2477,13 @@ function renderMJ(d){
       st.innerHTML='<span style="color:#fbbf24;font-weight:bold;">🤝 荒局 — 牌山僅剩最後八疊</span>';
       showWin('🀄 麻將 — 荒局','牌山僅剩最後八疊（16張），本局無人胡牌。',{ryukyoku:true});
     } else {
-      const fanTxt=d.winFan?`${d.winFan}番 / $${(d.winPay||0).toLocaleString()}`:'';
+      const fanTxt=d.winFan?`${d.winFan}台 / $${(d.winPay||0).toLocaleString()}`:'';
       const typeTxt=et==='zimo'?'自摸':'胡牌（放槍）';
       st.innerHTML=`<span style="color:#facc15;">🏆 ${d.winnerName} ${typeTxt}！${fanTxt}</span>`;
       showWin(
         `🀄 ${d.winnerName} ${typeTxt}！`,
-        `${fanTxt}\n${d.fanDetail?'台型：'+d.fanDetail+'\n':''}${d.endDetail||''}`
+        '',
+        {html:mjBuildResultHtml(d)}
       );
     }
   }
@@ -2435,7 +2501,12 @@ function renderMJ(d){
       && mjTenpaiTiles(phand, meldList.length).length > 0;
     const div=document.createElement('div');
     div.className='mj-opp'+(i===d.turnIndex&&!isTing?' active':'')+(isTing?' ting':'');
-    div.innerHTML=`<div class="onm">${i===bIdx?'👑':''}${u.name}</div>
+    const dlt=(d.gameState==='ended') ? (d.moneyDelta?.[pid]||0) : 0;
+    const dltHtml=dlt?`<span class="delta ${dlt>0?'up':'down'}">${dlt>0?'+':'-'}$${Math.abs(dlt).toLocaleString()}</span>`:'';
+    const oppTing=(d.gameState==='ended'&&d.winnerId===pid&&d.winTingTxt)
+      ? `<div class="hu-ting">聽 ${d.winTingTxt}</div>`:'';
+    div.innerHTML=`<div class="onm">${i===bIdx?'👑':''}${u.name}${dltHtml}</div>
+      ${oppTing}
       <div class="otl"><span class="back-icon"></span>${hLen}張</div>
       <div class="omn">💰${m.toLocaleString()}</div>`;
     if(meldList.length){
@@ -2639,18 +2710,59 @@ window.closeWinOverlay=()=>{
 };
 
 function showWin(title,detail,opts={}){
-  const key=title+detail+(opts.ryukyoku?'R':'');
+  const key=title+detail+(opts.html||'')+(opts.ryukyoku?'R':'');
   if(key===lastWinKey) return;
   lastWinKey=key;
   const ov=document.getElementById('win-overlay');
   document.getElementById('win-title').textContent=title;
-  document.getElementById('win-detail').textContent=detail||'';
+  if(opts.html) document.getElementById('win-detail').innerHTML=opts.html;
+  else document.getElementById('win-detail').textContent=detail||'';
   ov.classList.toggle('ryukyoku-end',!!opts.ryukyoku);
   ov.classList.remove('show','show-actions');
   ov.style.display='flex';
   requestAnimationFrame(()=>requestAnimationFrame(()=>ov.classList.add('show')));
   clearTimeout(winActionTimer);
   winActionTimer=setTimeout(()=>ov.classList.add('show-actions'),3000);
+}
+
+function mjEsc(t){ return String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function mjBuildResultHtml(d){
+  const order=d.playerOrder||[];
+  const money=d.money||{};
+  const delta=d.moneyDelta||{};
+  const tags=(d.fanList&&d.fanList.length)?d.fanList:(d.fanDetail? d.fanDetail.split(' / '):[]);
+  let html='<div class="res-box">';
+  html+='<div class="res-tags">'+tags.map(t=>`<span class="fan-pill">${mjEsc(t)}</span>`).join('')+'</div>';
+  html+=`<div class="res-total">總計：${d.winFan||0} 台　💵 $${(d.winPay||0).toLocaleString()}</div>`;
+  if(d.winTingTxt) html+=`<div class="res-ting">🀄 ${mjEsc(d.winnerName)} 聽：<b>${mjEsc(d.winTingTxt)}</b></div>`;
+  const wName=mjEsc(d.winnerName||'?');
+  if(d.endType==='hu' && d.loserId){
+    const lose=Math.abs(delta[d.loserId]||0), win=Math.abs(delta[d.winnerId]||0);
+    html+=`<div class="res-flow"><span class="flow-p">${mjEsc(d.loserName||'?')}</span>
+      <span class="flow-neg">😭 -$${lose.toLocaleString()}</span>
+      <span class="flow-arrow">➡</span>
+      <span class="flow-pos">😆 +$${win.toLocaleString()}</span>
+      <span class="flow-p">${wName}</span></div>`;
+  } else if(d.endType==='zimo'){
+    order.forEach(pid=>{
+      if(pid===d.winnerId) return;
+      const v=Math.abs(delta[pid]||0);
+      html+=`<div class="res-flow"><span class="flow-p">${mjEsc(d.users?.[pid]?.name||'?')}</span>
+        <span class="flow-neg">😭 -$${v.toLocaleString()}</span>
+        <span class="flow-arrow">➡</span>
+        <span class="flow-pos">😆 +$${v.toLocaleString()}</span>
+        <span class="flow-p">${wName}</span></div>`;
+    });
+  }
+  html+='<div class="res-bal">'+order.map(pid=>{
+    const dv=delta[pid]||0;
+    const cls=dv>0?'up':(dv<0?'down':'flat');
+    return `<div class="bal-row"><span class="bal-name">${mjEsc(d.users?.[pid]?.name||'?')}</span>
+      <span class="delta ${cls}">${dv>0?'+':(dv<0?'-':'')}$${Math.abs(dv).toLocaleString()}</span>
+      <span class="bal-sub">餘額 $${(money[pid]??3000).toLocaleString()}</span></div>`;
+  }).join('')+'</div>';
+  html+='</div>';
+  return html;
 }
 
 window.doRestart=()=>{
