@@ -1855,7 +1855,7 @@ window.mjChi = async () => {
   if((ap.responded||{})[currentKey]) return;
   mjBusy=true;
   try {
-    if(!mjAllHuPlayersPassed(ap) || ap.pengIntent || ap.gangIntent){
+    if(!mjAllHuPlayersPassed(ap) || !mjAllPengGangPlayersPassed(d, ap) || ap.pengIntent || ap.gangIntent){
       await update(ref(db,`majong_room/${currentRoomId}`),{
         'actionPending/chiIntent':currentKey,
         'actionPending/chiCombo':JSON.parse(JSON.stringify(chosen)),
@@ -1986,6 +1986,14 @@ function mjAllHuPlayersPassed(ap){
   const huOpts=(ap.options||[]).filter(o=>o.types.includes('hu'));
   if(!huOpts.length) return true;
   return huOpts.every(o=>mjHuPlayerPassed(ap,o.pid));
+}
+function mjAllPengGangPlayersPassed(d, ap){
+  const responded=ap.responded||{};
+  const opts=(ap.options||[]).filter(o=>
+    (o.types.includes('peng')||o.types.includes('gang')) && mjIsActivePlayer(d,o.pid)
+  );
+  if(!opts.length) return true;
+  return opts.every(o=>!!responded[o.pid]);
 }
 function mjGetHighestPriorityHuPlayer(d, ap){
   if(!ap?.tile||!ap.from) return null;
@@ -2147,6 +2155,7 @@ function mjTryResolveIntents(d, ap){
   if(!mjAllHuPlayersPassed(ap)) return null;
   if(ap.pengIntent) return mjBuildPengSettlement(d, ap.pengIntent, ap);
   if(ap.gangIntent) return mjBuildGangSettlement(d, ap.gangIntent, ap);
+  if(!mjAllPengGangPlayersPassed(d, ap)) return null;
   if(ap.chiIntent && ap.chiCombo) return mjBuildChiSettlement(d, ap.chiIntent, ap.chiCombo, ap);
   return null;
 }
@@ -2375,10 +2384,31 @@ function mjAutoRecoverDeadlock(d){
   const ap=d.actionPending;
   const upd={};
   if(ap?.options){
-    let opts=(ap.options||[]).filter(o=>mjIsActivePlayer(d,o.pid));
-    if(ap.createdAt && now-ap.createdAt>MJ_ACTION_TIMEOUT) opts=[];
-    if(opts.length !== (ap.options||[]).length){
-      Object.assign(upd,mjResolvePendingAfterPass(d,opts));
+    const activeOpts=(ap.options||[]).filter(o=>mjIsActivePlayer(d,o.pid));
+    const timedOut = !!ap.createdAt && now-ap.createdAt>MJ_ACTION_TIMEOUT;
+    if(timedOut){
+      // 超時：把尚未表態的活躍玩家一律視為 PASS，再嘗試結算既有意圖（吃/碰/槓）
+      const responded={...(ap.responded||{})};
+      let changed=false;
+      activeOpts.forEach(o=>{ if(!responded[o.pid]){ responded[o.pid]=true; changed=true; } });
+      const newAp={...ap, responded};
+      const resolved=mjTryResolveIntents(d, newAp);
+      if(resolved){
+        Object.assign(upd, resolved);
+      } else if(changed || activeOpts.length !== (ap.options||[]).length){
+        Object.assign(upd, mjResolvePendingAfterPass(d, []));
+      } else {
+        Object.assign(upd, mjResolvePendingAfterPass(d, []));
+      }
+    } else if(activeOpts.length !== (ap.options||[]).length){
+      // 有玩家離線：先移除其選項，若剩餘玩家已可結算則直接結算
+      const responded={...(ap.responded||{})};
+      (ap.options||[]).forEach(o=>{ if(!mjIsActivePlayer(d,o.pid)) responded[o.pid]=true; });
+      const newAp={...ap, options:activeOpts, responded};
+      const resolved=mjTryResolveIntents(d, newAp);
+      if(resolved) Object.assign(upd, resolved);
+      else if(activeOpts.length) Object.assign(upd,{'actionPending/options':activeOpts,'actionPending/responded':responded});
+      else Object.assign(upd, mjResolvePendingAfterPass(d, []));
     }
   } else if(ap?.type==='selfAct' || ap?.type==='zimoReady'){
     if(!mjIsActivePlayer(d,ap.player) || (ap.createdAt && now-ap.createdAt>MJ_ACTION_TIMEOUT)){
