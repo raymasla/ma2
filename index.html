@@ -511,15 +511,19 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
 .flow-neg{color:#f87171;font-weight:700;}
 .flow-pos{color:#4ade80;font-weight:700;}
 .flow-arrow{color:#94a3b8;}
-.res-bal{margin-top:10px;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;}
-.bal-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0;font-size:.85em;flex-wrap:nowrap;}
-.bal-name{min-width:56px;max-width:90px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 0 auto;}
-.bal-sub{font-size:.85em;color:#94a3b8;white-space:nowrap;flex:0 0 auto;text-align:right;}
-.bal-ting{display:flex;flex-direction:row;align-items:center;gap:2px;flex:1 1 auto;min-width:0;
-  justify-content:center;overflow:hidden;}
-.bal-ting .mjt-sm{width:clamp(14px,3.6vw,20px);height:clamp(19px,4.8vw,26px);
-  font-size:clamp(16px,4.4vw,24px);box-shadow:0 1px 2px rgba(0,0,0,.35);}
-.bal-ting .bal-ting-label{font-size:.72em;color:#94a3b8;white-space:nowrap;}
+.res-bal{margin-top:10px;border-top:1px solid rgba(255,255,255,.1);padding-top:8px;display:flex;flex-direction:column;gap:8px;}
+.bal-row{display:flex;flex-direction:column;background:rgba(0,0,0,.25);padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.05);font-size:.85em;}
+.bal-top{display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:6px;gap:8px;}
+.bal-name{font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bal-money{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.bal-sub{font-size:.85em;color:#94a3b8;}
+.bal-ting-area{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:.85em;color:#a5b4fc;background:rgba(0,0,0,.2);padding:6px;border-radius:6px;width:100%;}
+.bal-ting-area .mjt-sm{width:clamp(18px,4.6vw,24px);height:clamp(24px,6.2vw,32px);font-size:clamp(20px,5.4vw,28px);}
+@media (max-width:360px){
+  .bal-row{padding:6px 8px;}
+  .bal-ting-area{gap:3px;padding:4px;}
+  .bal-ting-area .mjt-sm{width:16px;height:22px;font-size:18px;}
+}
 #mj-my-ting{
   display:flex;align-items:flex-end;justify-content:center;flex-wrap:wrap;
   gap:4px 6px;padding:6px 10px 8px;margin:0;
@@ -547,10 +551,9 @@ input:focus,select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,2
 .mjt.angang-hidden{font-size:.75em;}
 
 #chi-modal{
-  position:fixed;top:10px;left:50%;transform:translateX(-50%);
-  width:100%;max-width:500px;z-index:1500;
+  position:fixed;top:0;left:0;right:0;z-index:3000;
   display:none;justify-content:center;align-items:flex-start;
-  padding:4px 6px 0;
+  padding:calc(4px + env(safe-area-inset-top,0px)) 6px 0;
   background:transparent;pointer-events:none;
 }
 #chi-modal.show{display:flex;}
@@ -892,7 +895,6 @@ function mjRyukyokuPayload(extra={}){
   return {
     gameState:'ended', endType:'ryukyoku', winnerName:'荒局',
     dealerStreak:(roomCache?.dealerStreak||0)+1,
-    allPlayersTing:mjAllPlayersTing(roomCache||{}),
     actionPending:null, drawPhase:false, turnUpdatedAt:Date.now(), ...extra
   };
 }
@@ -1643,186 +1645,251 @@ function countIds(arr){
   return m;
 }
 
-function mjAllDecomps(cnt){
-  const res=[];
-  const keys=()=>Object.keys(cnt).filter(k=>cnt[k]>0).sort();
-  const walk=(c,acc)=>{
-    const ks=Object.keys(c).filter(k=>c[k]>0).sort();
-    if(!ks.length){ res.push({triplets:[...acc.triplets],runs:[...acc.runs]}); return; }
-    const id=ks[0];
-    const t=MJ_TILE_MAP[id];
-    if(c[id]>=3){
-      const n={...c}; n[id]-=3;
-      acc.triplets.push(id); walk(n,acc); acc.triplets.pop();
+/* ===== 台灣麻將 16 張算台引擎 ===== */
+function mjCntFromTiles(tiles){
+  const c={};
+  (tiles||[]).forEach(t=>{ if(t&&t.id) c[t.id]=(c[t.id]||0)+1; });
+  return c;
+}
+function mjDecomposeSets(cnt, need){
+  if(need<=0){
+    return Object.keys(cnt).every(k=>!cnt[k]) ? [[]] : [];
+  }
+  const ids=Object.keys(cnt).filter(id=>cnt[id]>0).sort((a,b)=>mjTileSort(MJ_TILE_MAP[a],MJ_TILE_MAP[b]));
+  if(!ids.length) return [];
+  const id=ids[0]; const t=MJ_TILE_MAP[id]; const res=[];
+  if(cnt[id]>=3){
+    cnt[id]-=3;
+    mjDecomposeSets(cnt,need-1).forEach(r=>res.push([{type:'trip',id,tiles:[id,id,id],concealed:true},...r]));
+    cnt[id]+=3;
+  }
+  if(t && t.suit!=='jihai' && t.suit!=='flower' && t.num<=7){
+    const b=`${id[0]}${t.num+1}`, c2=`${id[0]}${t.num+2}`;
+    if(cnt[b]>0 && cnt[c2]>0){
+      cnt[id]--; cnt[b]--; cnt[c2]--;
+      mjDecomposeSets(cnt,need-1).forEach(r=>res.push([{type:'run',id,tiles:[id,b,c2],concealed:true},...r]));
+      cnt[id]++; cnt[b]++; cnt[c2]++;
     }
-    if(t && t.suit!=='jihai' && t.suit!=='flower' && t.num<=7){
-      const i2=`${id[0]}${t.num+1}`, i3=`${id[0]}${t.num+2}`;
-      if(c[i2]>0 && c[i3]>0){
-        const n={...c}; n[id]-=1; n[i2]-=1; n[i3]-=1;
-        acc.runs.push([id,i2,i3]); walk(n,acc); acc.runs.pop();
-      }
-    }
-  };
-  walk({...cnt},{triplets:[],runs:[]});
+  }
   return res;
 }
-
-/* 把「手牌(含胡牌)」拆解成 對子 + 面子，回傳所有可能的組合 */
-function mjHandStructures(tiles){
-  const cnt={};
-  tiles.forEach(t=>{ if(t.suit!=='flower') cnt[t.id]=(cnt[t.id]||0)+1; });
-  const out=[];
-  Object.keys(cnt).forEach(id=>{
-    if(cnt[id]<2) return;
-    const rem={...cnt}; rem[id]-=2;
-    mjAllDecomps(rem).forEach(d=>out.push({pair:id,triplets:d.triplets,runs:d.runs}));
+// 回傳所有合法拆法：{pair, sets:[{type,tiles}]}
+function mjAllDecompositions(tiles, needSets){
+  const cnt=mjCntFromTiles(tiles);
+  const out=[]; const seen=new Set();
+  Object.keys(cnt).forEach(pid=>{
+    if(cnt[pid]<2) return;
+    cnt[pid]-=2;
+    if(cnt[pid]<=0) { const keep=cnt[pid]; cnt[pid]=keep; }
+    mjDecomposeSets(cnt, needSets).forEach(sets=>{
+      const key=pid+'|'+sets.map(s=>s.type+s.tiles.join('')).sort().join('/');
+      if(seen.has(key)) return;
+      seen.add(key);
+      out.push({pair:pid, sets});
+    });
+    cnt[pid]+=2;
   });
   return out;
 }
-
-function mjCalcFan(hand,winTile,isTsumo,isDealer,melds,flowers,circleWind,seatWind,opts={}){
-  let fan=0; const detail=[];
-  const meldList=(melds||[]).slice();
-  const all=[...hand,winTile];
-  const flo=(flowers||[]).slice();
-  const myWindIdx=seatWind|0;
-  const meldsCount=meldList.length;
-
-  const add=(v,txt)=>{ fan+=v; detail.push(`${txt} +${v}台`); };
-
-  fan+=1; detail.push('底 1台');
-
-  /* ---- 手牌結構分析 ---- */
-  const concealedTiles = isTsumo ? [...hand, winTile] : [...hand, winTile];
-  const structs=mjHandStructures(concealedTiles);
-  // 副露轉成面子
-  const meldTriplets=[]; const meldRuns=[]; let concealedGang=0; let exposedGang=0;
-  meldList.forEach(m=>{
-    if(m.type==='chi') meldRuns.push(m.tiles.map(t=>t.id));
-    else meldTriplets.push(m.tiles[0].id);
-    if(m.type==='angang') concealedGang++;
-    else if(m.type==='gang'||m.type==='addgang') exposedGang++;
+// 聽牌型態：single(單吊) / closed(中洞) / edge(邊張) / open(雙頭) / trip(刻)
+function mjWaitTypesFor(dec, winId){
+  const types=[];
+  if(dec.pair===winId) types.push('single');
+  dec.sets.forEach(s=>{
+    if(!s.tiles.includes(winId)) return;
+    if(s.type==='trip'){ types.push('trip'); return; }
+    const nums=s.tiles.map(x=>MJ_TILE_MAP[x].num);
+    const w=MJ_TILE_MAP[winId].num;
+    if(w===nums[1]) types.push('closed');
+    else if((w===3&&nums[0]===1)||(w===7&&nums[2]===9)) types.push('edge');
+    else types.push('open');
   });
+  return types;
+}
+function mjMeldToSet(m){
+  const id=m.tiles[0].id;
+  if(m.type==='chi') return {type:'run', tiles:m.tiles.map(t=>t.id), concealed:false, kong:false};
+  return {
+    type:'trip', id, tiles:[id,id,id],
+    concealed:(m.type==='angang'),
+    kong:(m.type!=='peng')
+  };
+}
 
-  // 選擇「刻子最多」與「順子最多」兩種代表結構
-  let best=structs[0]||{pair:null,triplets:[],runs:[]};
-  let mostRuns=best;
-  structs.forEach(s=>{
-    if(s.triplets.length>best.triplets.length) best=s;
-    if(s.runs.length>mostRuns.runs.length) mostRuns=s;
+const MJ_DRAGON_IDS=['z5','z6','z7'];
+const MJ_WIND_IDS=['z1','z2','z3','z4'];
+
+/**
+ * mjCalcFan(ctx)
+ * ctx = { hand, winTile, isTsumo, melds, flowers, circleWind, seatWind,
+ *         isDealer, dealerStreak, deckLeft, afterGang, isRobKong,
+ *         robFlower, playerCount }
+ * 僅計算「牌型/情境」台數，莊家與連莊台由結算端加計（2N+1）。
+ */
+function mjCalcFan(ctx, ...legacy){
+  // 相容舊式呼叫 mjCalcFan(hand,winTile,isTsumo,isDealer,melds,flowers,circleWind,seatWind)
+  if(Array.isArray(ctx)){
+    const [winTile,isTsumo,isDealer,melds,flowers,circleWind,seatWind]=legacy;
+    ctx={hand:ctx,winTile,isTsumo,isDealer,melds,flowers,circleWind,seatWind};
+  }
+  const hand=ctx.hand||[];
+  const winTile=ctx.winTile;
+  const isTsumo=!!ctx.isTsumo;
+  const melds=ctx.melds||[];
+  const flowers=ctx.flowers||[];
+  const circleWind=ctx.circleWind|0;
+  const seatWind=ctx.seatWind|0;
+  const deckLeft=(typeof ctx.deckLeft==='number')?ctx.deckLeft:-1;
+  const isLastTile = deckLeft>=0 && deckLeft<=(typeof MJ_DEAD_WALL==='number'?MJ_DEAD_WALL:0);
+  const afterGang=!!ctx.afterGang;
+  const isRobKong=!!ctx.isRobKong;
+
+  const concealedTiles=[...hand, winTile].filter(Boolean);
+  const meldSets=melds.map(mjMeldToSet);
+  const needSets=Math.max(0, 5-melds.length);
+  let decs=mjAllDecompositions(concealedTiles, needSets);
+  if(!decs.length) decs=[{pair:null, sets:[], invalid:true}];
+
+  let best=null;
+  decs.forEach(dec=>{
+    const r=mjScoreDecomposition({
+      dec, meldSets, hand, winTile, isTsumo, melds, flowers,
+      circleWind, seatWind, isLastTile, afterGang, isRobKong,
+      robFlower:!!ctx.robFlower, allDecs:decs
+    });
+    if(!best || r.fan>best.fan) best=r;
   });
+  return {fan:Math.max(1,best.fan), detail:best.detail};
+}
 
-  const allTriplets=[...best.triplets,...meldTriplets];
-  const allRuns=[...mostRuns.runs,...meldRuns];
-  const pairId=best.pair;
+function mjScoreDecomposition(o){
+  const {dec, meldSets, hand, winTile, isTsumo, melds, flowers,
+         circleWind, seatWind, isLastTile, afterGang, isRobKong, allDecs}=o;
+  const detail=[]; let fan=0;
+  const add=(txt,v)=>{ if(v>0){ fan+=v; detail.push(`${txt} +${v}台`);} };
 
-  /* ---- 暗刻（自己手上的刻子 + 暗槓） ---- */
-  // 放槍胡的那張牌若構成刻子，不算暗刻
-  let concealedTripletIds=best.triplets.slice();
-  if(!isTsumo){
-    const i=concealedTripletIds.indexOf(winTile.id);
-    if(i>=0) concealedTripletIds.splice(i,1);
-  }
-  const isPengHuPriority = !!opts.pengPriority; // 同時聽碰吃時碰優先
-  const anke = concealedTripletIds.length + concealedGang;
-  if(!isPengHuPriority){
-    if(anke>=5) add(8,'五暗刻');
-    else if(anke===4) add(5,'四暗刻');
-    else if(anke===3) add(2,'三暗刻');
-  }
+  detail.push('底 1台'); fan+=1;
 
-  /* ---- 三元牌 ---- */
-  const dragonIds=['z5','z6','z7'];
-  const dragonTrip=allTriplets.filter(id=>dragonIds.includes(id));
-  dragonTrip.forEach(id=>add(1,`三元牌(${MJ_TILE_MAP[id]?.disp||id})`));
-  if(dragonTrip.length===3) add(8,'大三元');
-  else if(dragonTrip.length===2 && dragonIds.includes(pairId)) add(4,'小三元');
+  const sets=[...meldSets, ...dec.sets];
+  const allIds=[];
+  sets.forEach(s=>s.tiles.forEach(id=>allIds.push(id)));
+  if(dec.pair){ allIds.push(dec.pair, dec.pair); }
+  const tilesInfo=allIds.map(id=>MJ_TILE_MAP[id]).filter(Boolean);
 
-  /* ---- 四喜 ---- */
-  const windIds=['z1','z2','z3','z4'];
-  const windTrip=allTriplets.filter(id=>windIds.includes(id));
-  if(windTrip.length===4) add(16,'大四喜');
-  else if(windTrip.length===3 && windIds.includes(pairId)) add(8,'小四喜');
-
-  /* ---- 花牌 ---- */
-  const floIds=flo.map(f=>f.id);
-  const hasSet=(a)=>a.every(id=>floIds.includes(id));
-  if(flo.length===8) add(8,'八仙過海');
+  /* --- 花牌 --- */
+  const flo=flowers||[];
+  const has=n=>flo.some(f=>f.num===n);
+  const fullSpring=[1,2,3,4].every(has);
+  const fullPlum=[5,6,7,8].every(has);
+  if(flo.length===8){ add('八仙過海',8); }
+  else if(flo.length===7 && o.robFlower){ add('七搶一',8); }
   else {
-    if(hasSet(['f1','f2','f3','f4'])) add(2,'春夏秋冬');
-    if(hasSet(['f5','f6','f7','f8'])) add(2,'梅蘭竹菊');
+    const matchFlowers=flo.filter(f=>(f.num-1)%4===(seatWind|0));
+    if(matchFlowers.length) add(`正花x${matchFlowers.length}`, matchFlowers.length);
+    if(fullSpring) add('花槓(春夏秋冬)',1);
+    if(fullPlum)   add('花槓(梅蘭竹菊)',1);
   }
 
-  /* ---- 見花見字（1張風牌或自己方位花牌即1台） ---- */
-  const hasWindTile = all.some(t=>t.suit==='jihai' && t.num<=4);
-  const hasMeldWind = meldList.some(m=>(m.tiles||[]).some(t=>t.suit==='jihai'&&t.num<=4));
-  const hasOwnFlower = flo.some(f=>(f.num-1)%4===myWindIdx);
-  if(hasWindTile||hasMeldWind||hasOwnFlower) add(1,'見花見字');
+  /* --- 胡牌狀態 --- */
+  const isMenqing = melds.every(m=>m.type==='angang');
+  const allFromOthers = melds.length===5 && melds.every(m=>m.type!=='angang');
+  const isChuanQiuRen = allFromOthers && !isTsumo;
 
-  /* ---- 花色 ---- */
-  const suitTiles=[...all, ...meldList.flatMap(m=>m.tiles||[])].filter(t=>t.suit!=='flower');
-  const numSuits=new Set(suitTiles.filter(t=>t.suit!=='jihai').map(t=>t.suit));
-  const hasJihai=suitTiles.some(t=>t.suit==='jihai');
-  if(numSuits.size===0 && hasJihai) add(16,'字一色');
-  else if(numSuits.size===1 && !hasJihai) add(8,'清一色');
-  else if(numSuits.size===1 && hasJihai) add(4,'混一色');
+  // 聽牌型態（跨所有拆法判斷是否獨聽）
+  const winId=winTile?.id;
+  let anyOpenWait=false, thisWaitOpen=false;
+  (allDecs||[]).forEach(d2=>{
+    if(d2.invalid) return;
+    const ts=mjWaitTypesFor(d2, winId);
+    if(ts.includes('open')) anyOpenWait=true;
+  });
+  const myWaits=dec.invalid?[]:mjWaitTypesFor(dec, winId);
+  thisWaitOpen=myWaits.includes('open');
+  const isDuTing = !anyOpenWait && myWaits.length>0;
 
-  /* ---- 獨聽 / 全求人 ---- */
-  const tingIds=(()=>{ try{ return mjTenpaiTiles(hand, meldsCount); }catch(e){ return []; } })();
-  const isDandiao = tingIds.length===1;
-  const isChuanQiuRen = !isTsumo && hand.length===1
-    && meldList.length===4
-    && meldList.every(m=>m.type==='chi'||m.type==='peng'||m.type==='gang'||m.type==='addgang');
-  if(isChuanQiuRen) add(2,'全求人');
-  else if(isDandiao) add(1,'獨聽');
+  if(afterGang && isTsumo){
+    add('槓上自摸(含自摸)',2);
+  } else if(isTsumo){
+    if(isMenqing) add('門清自摸(含門清/自摸/不求人)',3);
+    else add('自摸',1);
+    if(isLastTile) add('海底撈月',1);
+  } else {
+    if(isMenqing) add('門清',1);
+    if(isChuanQiuRen) add('全求人',1);
+    if(isLastTile) add('河底撈魚',1);
+    if(isRobKong) add('搶槓',1);
+  }
+  if(isTsumo && isMenqing===false){ /* 明牌自摸已計 */ }
+  if(isDuTing) add('獨聽',1);
 
-  /* ---- 碰碰胡 / 平胡 ---- */
-  const totalTriplets=allTriplets.length;
-  const totalRuns=allRuns.length;
-  if(totalTriplets>=5 && best.runs.length===0 && meldRuns.length===0) add(4,'碰碰胡');
-  else if(mostRuns.runs.length+meldRuns.length>=5
-          && !isDandiao && !isTsumo
-          && flo.length===0 && !hasJihai) add(2,'平胡');
+  /* --- 牌型 --- */
+  const honors=tilesInfo.filter(t=>t.suit==='jihai');
+  const nonHonors=tilesInfo.filter(t=>t.suit!=='jihai');
+  const suits=new Set(nonHonors.map(t=>t.suit));
+  const isZiyise = nonHonors.length===0 && tilesInfo.length>0;
+  const isQingyise = honors.length===0 && suits.size===1;
+  const isHunyise = honors.length>0 && suits.size===1;
+  const tripSets = sets.filter(s=>s.type==='trip');
+  const runSets  = sets.filter(s=>s.type==='run');
+  const isPengpeng = runSets.length===0 && tripSets.length>=5;
 
-  /* ---- 門清 / 自摸 ---- */
-  const concealedHand=meldList.every(m=>m.type==='angang');
-  if(concealedHand && isTsumo) add(3,'門清自摸');
-  else if(concealedHand) add(1,'門清');
-  else if(isTsumo) add(1,'自摸');
+  if(isZiyise) add('字一色',8);
+  else if(isQingyise) add('清一色',8);
+  else if(isHunyise) add('混一色',4);
 
-  /* ---- 槓 ---- */
-  if(exposedGang) add(exposedGang,'明槓');
-  if(concealedGang) add(concealedGang*2,'暗槓');
+  if(isPengpeng) add('碰碰胡',4);
 
-  /* ---- 特殊時機 ---- */
-  if(opts.tianhu) add(24,'天胡');
-  else if(opts.dihu) add(16,'地胡');
-  if(opts.tianting) add(8,'天聽');
-  else if(opts.diting) add(4,'地聽');
-  if(opts.haidi && isTsumo) add(1,'海底撈月');
-  if(opts.afterGang) add(1,'槓上開花');
-  if(opts.robGang) add(1,'搶槓胡');
+  // 平胡：無字、無花、無刻(槓)、非獨聽、非自摸、聽雙頭
+  const isPinghu = !isTsumo && !isDuTing && thisWaitOpen
+    && tripSets.length===0 && honors.length===0 && flo.length===0
+    && dec.pair && MJ_TILE_MAP[dec.pair]?.suit!=='jihai';
+  if(isPinghu) add('平胡',2);
 
-  return {fan:Math.max(1,fan), detail};
-}
+  /* --- 三元 / 四喜 --- */
+  const tripIds=tripSets.map(s=>s.tiles[0]);
+  const dragonTrips=tripIds.filter(id=>MJ_DRAGON_IDS.includes(id));
+  const dragonPair = dec.pair && MJ_DRAGON_IDS.includes(dec.pair);
+  const windTrips=tripIds.filter(id=>MJ_WIND_IDS.includes(id));
+  const windPair = dec.pair && MJ_WIND_IDS.includes(dec.pair);
 
-function collectAllMelds(allTiles, melds){
-  const triplets=[]; const runs=[];
+  let countDragonSingles=true;
+  if(dragonTrips.length>=3){ add('大三元',8); countDragonSingles=false; }
+  else if(dragonTrips.length===2 && dragonPair){ add('小三元',4); countDragonSingles=false; }
+  if(countDragonSingles){
+    dragonTrips.forEach(id=>add(`三元牌(${MJ_TILE_MAP[id]?.disp||id})`,1));
+  }
+
+  let countWindSingles=true;
+  if(windTrips.length>=4){ add('大四喜',16); countWindSingles=false; }
+  else if(windTrips.length===3 && windPair){ add('小四喜',8); }
+  if(countWindSingles){
+    const circleId=`z${(circleWind|0)+1}`;
+    const seatId=`z${(seatWind|0)+1}`;
+    if(windTrips.includes(circleId)) add('圈風刻',1);
+    if(windTrips.includes(seatId))   add('門風刻',1);
+  }
+
+  /* --- 暗刻 --- */
+  let concealedTrips=0;
+  dec.sets.forEach(s=>{
+    if(s.type!=='trip') return;
+    // 放槍補成的刻子不算暗刻
+    if(!isTsumo && winId && s.tiles[0]===winId) return;
+    concealedTrips++;
+  });
+  concealedTrips += melds.filter(m=>m.type==='angang').length;
+  if(concealedTrips>=5) add('五暗刻',8);
+  else if(concealedTrips===4) add('四暗刻',5);
+  else if(concealedTrips===3) add('三暗刻',2);
+
+  /* --- 槓 --- */
   melds.forEach(m=>{
-    if(m.type==='peng'||m.type==='gang'||m.type==='angang'||m.type==='addgang'){
-      triplets.push(m.tiles[0].id);
-    } else if(m.type==='chi'){
-      runs.push(m.tiles.map(t=>t.id).sort().join(','));
-    }
+    if(m.type==='gang'||m.type==='addgang') add('明槓',1);
+    else if(m.type==='angang') add('暗槓',2);
   });
-  const handOnly=allTiles.slice();
-  const c=countIds(handOnly);
-  Object.entries(c).forEach(([id,v])=>{
-    if(v>=3 && !triplets.includes(id)) triplets.push(id);
-  });
-  return {triplets,runs};
-}
 
+  return {fan, detail};
+}
 function mjFanPay(fan){ return 100*fan; }
 
 window.mjStart = async () => {
@@ -1853,6 +1920,7 @@ window.mjStart = async () => {
     moneyDelta:null, fanList:null, winTingTxt:null, loserId:null,
     drawPhase:false,           
     lastDrawn:{},              
+    gangDraw:{},               
     discards:[],melds:{},money,
     roundNum:(d.roundNum||0)+1,
     circleWind, actionPending:null,
@@ -1887,6 +1955,7 @@ window.mjDraw = async () => {
   upd[`flowers/${currentKey}`]=flowerArr;
   upd['deck']=deck;
   upd['drawPhase']=false;
+  upd[`gangDraw/${currentKey}`]=null;
   upd[`lastDrawn/${currentKey}`]= hand[hand.length-1]?.uid ?? null;
   const myMelds=d.melds?.[currentKey]||[];
   const anGangs=mjCanAnGang(hand);
@@ -1940,6 +2009,7 @@ window.mjDiscard = async () => {
     const upd={};
     upd[`hands/${currentKey}`]=newHand;
     upd[`lastDrawn/${currentKey}`]=null;
+    upd[`gangDraw/${currentKey}`]=null;
     upd['discards']=discards;
     if(opts.length){
       upd['actionPending']={tile,from:currentKey,options:opts,afterTurn:d.turnIndex,createdAt:Date.now()};
@@ -2046,6 +2116,7 @@ window.mjAnGang = async () => {
   upd[`flowers/${currentKey}`]=flowerArr;
   upd['melds']=melds; upd['deck']=deck;
   upd[`lastDrawn/${currentKey}`]= newHand[newHand.length-1]?.uid ?? null;
+  upd[`gangDraw/${currentKey}`]=true;
   upd['actionPending']=null; upd['drawPhase']=false; upd['turnUpdatedAt']=Date.now();
   if(mjIsWinWithMelds(newHand, (melds[currentKey]||[]).length)) upd['actionPending']={type:'selfAct',player:currentKey,acts:{zimo:true},createdAt:Date.now()};
   else if(mjShouldRyukyoku(deck)) Object.assign(upd, mjRyukyokuPayload());
@@ -2065,6 +2136,24 @@ window.mjAddGang = async () => {
     if(k>=0&&k<ap.acts.addgang.length) targetId=ap.acts.addgang[k];
   }
   mjBusy=true;
+  // 搶槓判定：其他玩家可胡此張則先讓他們表態
+  const robTile=MJ_TILE_MAP[targetId];
+  const robbers=(d.playerOrder||[]).filter(pid=>
+    pid!==currentKey && mjIsActivePlayer(d,pid) &&
+    mjCanHu(d.hands?.[pid]||[], robTile, (d.melds?.[pid]||[]).length)
+  );
+  if(robbers.length){
+    const clean=JSON.parse(JSON.stringify((d.hands?.[currentKey]||[]).find(t=>t.id===targetId)||robTile));
+    await update(ref(db,`majong_room/${currentRoomId}`),{
+      actionPending:{
+        tile:clean, from:currentKey,
+        options:robbers.map(pid=>({pid,types:['hu'],chiOpts:[]})),
+        robKong:true, gangTargetId:targetId,
+        afterTurn:d.turnIndex, createdAt:Date.now()
+      }
+    });
+    mjBusy=false; return;
+  }
   const myHand=[...(d.hands?.[currentKey]||[])];
   const tileObj=myHand.find(t=>t.id===targetId);
   let removed=0;
@@ -2087,6 +2176,7 @@ window.mjAddGang = async () => {
   upd[`flowers/${currentKey}`]=flowerArr;
   upd['melds']=melds; upd['deck']=deck;
   upd[`lastDrawn/${currentKey}`]= newHand[newHand.length-1]?.uid ?? null;
+  upd[`gangDraw/${currentKey}`]=true;
   upd['actionPending']=null; upd['drawPhase']=false; upd['turnUpdatedAt']=Date.now();
   if(mjIsWinWithMelds(newHand, (melds[currentKey]||[]).length)) upd['actionPending']={type:'selfAct',player:currentKey,acts:{zimo:true},createdAt:Date.now()};
   else if(mjShouldRyukyoku(deck)) Object.assign(upd, mjRyukyokuPayload());
@@ -2143,17 +2233,22 @@ function mjBuildHuSettlement(d, winnerPid, ap){
   const streak=d.dealerStreak||0;
   const myFlowers=(d.flowers||{})[winnerPid]||[];
   const myIdx=order.indexOf(winnerPid);
-  const huOpts={
-    robGang: ap.type==='gangRob' || !!ap.robGang,
-    haidi: mjShouldRyukyoku(d.deck)
-  };
-  const fanRes=mjCalcFan(myHand,tile,false,false,d.melds?.[winnerPid]||[],myFlowers,d.circleWind||0,myIdx,huOpts);
+  const fanRes=mjCalcFan({
+    hand:myHand, winTile:tile, isTsumo:false,
+    melds:d.melds?.[winnerPid]||[], flowers:myFlowers,
+    circleWind:d.circleWind||0, seatWind:myIdx,
+    isDealer, dealerStreak:streak,
+    deckLeft:(d.deck||[]).length,
+    afterGang:false,
+    isRobKong:!!ap.robKong,
+    playerCount:order.length
+  });
   let finalFan=fanRes.fan;
   const fanList=[...fanRes.detail];
   if(isDealer||loserIsDealer){
-    const dealerExtraFan=1+(Math.min(streak,10)*2);
+    const dealerExtraFan=1+(streak*2);
     finalFan+=dealerExtraFan;
-    fanList.push(`莊家及連莊 +${dealerExtraFan}台`);
+    fanList.push(streak>0?`莊家連${streak}拉${streak} +${dealerExtraFan}台`:`莊家 +${dealerExtraFan}台`);
   }
   const fanDetail=fanList.join(' / ');
   const baseMoney=300, fanMoney=100;
@@ -2168,14 +2263,13 @@ function mjBuildHuSettlement(d, winnerPid, ap){
   const moneyDelta={};
   order.forEach(pid=>{ moneyDelta[pid]=(money[pid]??3000)-(prevMoney[pid]??3000); });
   const winTingTxt=mjTingTextOf(myHand, (d.melds?.[winnerPid]||[]).length);
-  const allPlayersTing=mjAllPlayersTing(d);
   if(mjCheckBankruptcy(money, order)){
     return {
       gameState:'ended',endType:'bankrupt',
       winnerName:d.users?.[winnerPid]?.name||'?',
       winnerId:winnerPid,winTile:tile,winFan:finalFan,winPay:owed,
       money,nextBankerIdx:nextB,bankerChanged,dealerStreak:nextStreak,
-      moneyDelta,fanList,winTingTxt,loserId:fromId,fanDetail,allPlayersTing,
+      moneyDelta,fanList,winTingTxt,loserId:fromId,fanDetail,
       endDetail:mjMoneyRankingText({...d,money}, money),
       mjRanking:mjMoneyRankingText({...d,money}, money),
       actionPending:null
@@ -2187,24 +2281,11 @@ function mjBuildHuSettlement(d, winnerPid, ap){
     winnerId:winnerPid,winTile:tile,winFan:finalFan,winPay:owed,
     loserName:d.users?.[fromId]?.name||'?', loserId:fromId,
     money,nextBankerIdx:nextB,bankerChanged,dealerStreak:nextStreak,
-    moneyDelta,fanList,winTingTxt,allPlayersTing,
+    moneyDelta,fanList,winTingTxt,
     endDetail:buildMoneyDetail(order,d.users,money),
     fanDetail,
     actionPending:null
   };
-}
-function mjAllPlayersTing(d){
-  const res={};
-  (d?.playerOrder||[]).forEach(pid=>{
-    try{
-      const mc=((d.melds||{})[pid]||[]).length;
-      let hand=((d.hands||{})[pid]||[]).filter(t=>t && t.suit!=='flower');
-      const need=(5-mc)*3+1;
-      if(hand.length>need) hand=hand.slice(0,need);
-      res[pid]=mjTenpaiTiles(hand, mc)||[];
-    }catch(e){ res[pid]=[]; }
-  });
-  return res;
 }
 function mjTingTextOf(hand, meldsCount){
   try{
@@ -2278,16 +2359,51 @@ function mjBuildGangSettlement(d, gangPid, ap){
     discards:(d.discards||[]).slice(0,-1), activeDiscard:false
   };
   upd[`lastDrawn/${gangPid}`]= newHand[newHand.length-1]?.uid ?? null;
+  upd[`gangDraw/${gangPid}`]=true;
   if(mjIsWinWithMelds(newHand, (melds[gangPid]||[]).length)) upd.actionPending={type:'zimoReady',player:gangPid,createdAt:Date.now()};
   else if(mjShouldRyukyoku(deck)) Object.assign(upd, mjRyukyokuPayload());
   else upd.actionPending=null;
   return upd;
 }
+function mjBuildAddGangSettlement(d, pid, targetId){
+  const myHand=[...(d.hands?.[pid]||[])];
+  const tileObj=myHand.find(t=>t.id===targetId);
+  if(!tileObj) return {actionPending:null};
+  let removed=0;
+  const newHand=myHand.filter(t=>{ if(t.id===targetId&&removed<1){removed++;return false;} return true; });
+  const melds={...(d.melds||{})};
+  const arr=[...(melds[pid]||[])];
+  const mi=arr.findIndex(m=>m.type==='peng'&&m.tiles[0].id===targetId);
+  if(mi>=0) arr[mi]={type:'addgang',tiles:[tileObj,tileObj,tileObj,tileObj]};
+  melds[pid]=arr;
+  const deck=[...(d.deck||[])];
+  const flowerArr=[...((d.flowers||{})[pid]||[])];
+  if(!deck.length || mjShouldRyukyoku(deck)) return mjRyukyokuPayload();
+  const extra=deck.shift();
+  newHand.push(extra);
+  drawWithFlowerReplace(newHand,flowerArr,deck);
+  const myIdx=(d.playerOrder||[]).indexOf(pid);
+  const upd={};
+  upd[`hands/${pid}`]=newHand;
+  upd[`flowers/${pid}`]=flowerArr;
+  upd['melds']=melds; upd['deck']=deck;
+  upd['turnIndex']=myIdx; upd['drawPhase']=false; upd['turnUpdatedAt']=Date.now();
+  upd[`lastDrawn/${pid}`]= newHand[newHand.length-1]?.uid ?? null;
+  upd[`gangDraw/${pid}`]=true;
+  upd['activeDiscard']=false;
+  if(mjIsWinWithMelds(newHand, (melds[pid]||[]).length)) upd['actionPending']={type:'zimoReady',player:pid,createdAt:Date.now()};
+  else if(mjShouldRyukyoku(deck)) Object.assign(upd, mjRyukyokuPayload());
+  else upd['actionPending']=null;
+  return upd;
+}
+
 function mjTryResolveIntents(d, ap){
   if(!ap?.tile) return null;
   const highestHu=mjGetHighestPriorityHuPlayer(d, ap);
   if(highestHu && (ap.huIntents||{})[highestHu]) return mjBuildHuSettlement(d, highestHu, ap);
   if(!mjAllHuPlayersPassed(ap)) return null;
+  // 搶槓：無人胡則繼續完成加槓
+  if(ap.robKong) return mjBuildAddGangSettlement(d, ap.from, ap.gangTargetId);
   if(ap.pengIntent) return mjBuildPengSettlement(d, ap.pengIntent, ap);
   if(ap.gangIntent) return mjBuildGangSettlement(d, ap.gangIntent, ap);
   if(!mjAllPengGangPlayersPassed(d, ap)) return null;
@@ -2402,19 +2518,20 @@ window.mjZimo = async () => {
   const baseHand=myHand.slice(0,-1);
   const myFlowers=(d.flowers||{})[currentKey]||[];
   const myIdx=order.indexOf(currentKey);
-  const myMeldsCnt=(d.melds?.[currentKey]||[]).length;
-  const discardCnt=(d.discards||[]).length;
-  const zimoOpts={
-    tianhu: isDealer && discardCnt===0 && myMeldsCnt===0,
-    dihu: !isDealer && discardCnt<=order.length && myMeldsCnt===0,
-    haidi: mjShouldRyukyoku(d.deck),
-    afterGang: !!d.gangDraw
-  };
-  const fanRes=mjCalcFan(baseHand,winTile,true,false,d.melds?.[currentKey]||[],myFlowers,d.circleWind||0,myIdx,zimoOpts);
+  const fanRes=mjCalcFan({
+    hand:baseHand, winTile, isTsumo:true,
+    melds:d.melds?.[currentKey]||[], flowers:myFlowers,
+    circleWind:d.circleWind||0, seatWind:myIdx,
+    isDealer, dealerStreak:streak,
+    deckLeft:(d.deck||[]).length,
+    afterGang:!!(d.gangDraw||{})[currentKey],
+    isRobKong:false,
+    playerCount:order.length
+  });
   const baseFan=fanRes.fan;
   const fanList=[...fanRes.detail];
   if(isDealer||order.some(pid=>pid!==currentKey&&order[bIdx]===pid)){
-    fanList.push(`莊家及連莊 +${1+Math.min(streak,10)*2}台（對莊家/由莊家計）`);
+    fanList.push(streak>0?`莊家連${streak}拉${streak} +${1+streak*2}台（對莊家/由莊家計）`:`莊家 +${1+streak*2}台（對莊家/由莊家計）`);
   }
   const fanDetail=fanList.join(' / ');
   let totalGet=0;
@@ -2423,7 +2540,7 @@ window.mjZimo = async () => {
     if(pid===currentKey) return;
     const pidIsDealer = order[bIdx]===pid;
     let currentFan=baseFan;
-    if(isDealer||pidIsDealer) currentFan += (1 + Math.min(streak,10)*2);
+    if(isDealer||pidIsDealer) currentFan += (1 + streak*2);
     const owed=baseMoney+(currentFan*fanMoney);
     money[pid]=(money[pid]||3000)-owed;
     totalGet+=owed;
@@ -2435,7 +2552,6 @@ window.mjZimo = async () => {
   const moneyDelta={};
   order.forEach(pid=>{ moneyDelta[pid]=(money[pid]??3000)-(prevMoney[pid]??3000); });
   const winTingTxt=mjTingTextOf(baseHand, (d.melds?.[currentKey]||[]).length);
-  const allPlayersTing=mjAllPlayersTing(d);
   const ranking=mjMoneyRankingText({...d,money}, money);
   if(mjCheckBankruptcy(money, order)){
     await update(ref(db,`majong_room/${currentRoomId}`),{
@@ -2443,7 +2559,7 @@ window.mjZimo = async () => {
       winnerName:d.users?.[currentKey]?.name||myName,
       winnerId:currentKey,winTile,winFan:baseFan,winPay:totalGet,
       money,nextBankerIdx:nextB,bankerChanged,dealerStreak:nextStreak,
-      moneyDelta,fanList,winTingTxt,loserId:null,fanDetail,allPlayersTing,
+      moneyDelta,fanList,winTingTxt,loserId:null,fanDetail,
       endDetail:ranking,mjRanking:ranking,actionPending:null
     });
   } else {
@@ -2453,7 +2569,7 @@ window.mjZimo = async () => {
       winnerName:d.users?.[currentKey]?.name||myName,
       winnerId:currentKey,winTile,winFan:baseFan,winPay:totalGet,
       money,nextBankerIdx:nextB,bankerChanged,dealerStreak:nextStreak,
-      moneyDelta,fanList,winTingTxt,loserId:null,allPlayersTing,
+      moneyDelta,fanList,winTingTxt,loserId:null,
       endDetail:detail,fanDetail
     });
   }
@@ -2928,22 +3044,35 @@ function mjBuildResultHtml(d){
         <span class="flow-p">${wName}</span></div>`;
     });
   }
-  const allTing=d.allPlayersTing||{};
   html+='<div class="res-bal">'+order.map(pid=>{
     const dv=delta[pid]||0;
     const cls=dv>0?'up':(dv<0?'down':'flat');
-    const ids=Array.isArray(allTing[pid])?allTing[pid]:[];
-    const tingHtml=ids.length
-      ? `<span class="bal-ting"><span class="bal-ting-label">聽</span>`
-        + ids.map(id=>{
-            const t=MJ_TILE_MAP[id];
-            return `<div class="mjt-sm ${t?.suit||''}">${mjEsc(t?.disp||id)}</div>`;
-          }).join('') + '</span>'
-      : '<span class="bal-ting"></span>';
-    return `<div class="bal-row"><span class="bal-name">${mjEsc(d.users?.[pid]?.name||'?')}</span>
-      <span class="delta ${cls}">${dv>0?'+':(dv<0?'-':'')}$${Math.abs(dv).toLocaleString()}</span>
-      ${tingHtml}
-      <span class="bal-sub">餘額 $${(money[pid]??3000).toLocaleString()}</span></div>`;
+    let tingHtml='<span style="font-size:0.85em; color:var(--muted);">尚未聽牌</span>';
+    try{
+      const meldsCount=(d.melds?.[pid]||[]).length;
+      let hand=[...(d.hands?.[pid]||[])].filter(t=>t && !String(t.id||'').startsWith('f'));
+      // 胡牌者/自摸者手上會多一張(winTile)，先剔除最後一張還原聽牌狀態
+      if(hand.length + meldsCount*3 === 17) hand=hand.slice(0,-1);
+      if(hand.length + meldsCount*3 === 16){
+        const ids=mjTenpaiTiles(hand, meldsCount);
+        if(ids.length){
+          tingHtml=ids.map(id=>{
+            const t=MJ_TILE_MAP[id]; if(!t) return '';
+            return `<div class="mjt-sm ${t.suit}">${t.disp}</div>`;
+          }).join('');
+        }
+      }
+    }catch(e){}
+    return `<div class="bal-row">
+      <div class="bal-top">
+        <span class="bal-name">${mjEsc(d.users?.[pid]?.name||'?')}</span>
+        <div class="bal-money">
+          <span class="delta ${cls}">${dv>0?'+':(dv<0?'-':'')}$${Math.abs(dv).toLocaleString()}</span>
+          <span class="bal-sub">餘額 $${(money[pid]??3000).toLocaleString()}</span>
+        </div>
+      </div>
+      <div class="bal-ting-area"><span>聽牌：</span>${tingHtml}</div>
+    </div>`;
   }).join('')+'</div>';
   html+='</div>';
   return html;
